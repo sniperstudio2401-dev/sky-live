@@ -288,7 +288,7 @@ setInterval(() => {
   }
 }, 1000);
 
-let lastDataTime = 0, lastOkAt = 0, source = "", fetching = false;
+let lastDataTime = 0, lastOkAt = 0, source = "", fetching = false, lastProblem = "";
 function applyData(data) {
   if (!data.planes) return;
   if (data.time && data.time === lastDataTime) return; // same snapshot as before
@@ -321,8 +321,9 @@ async function poll() {
   try {
     const r = await fetch(`${RELAY}/?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&dist=${RANGES[rangeIdx].nm}`);
     const data = await r.json();
-    if (data.planes) applyData(data);
-  } catch (e) { /* keep showing what we have */ }
+    if (data.planes) { applyData(data); lastProblem = ""; }
+    else lastProblem = "Feeds busy" + (data.errors ? " (" + data.errors.map(x => x.split(":")[0] + " " + (x.match(/HTTP \d+|timed out|failed/) || [""])[0]).join(", ") + ")" : "") + " · retrying";
+  } catch (e) { lastProblem = "Can't reach your relay · retrying"; }
   fetching = false;
   updateStatus();
 }
@@ -331,7 +332,7 @@ function updateStatus() {
   const age = lastOkAt ? Math.round((Date.now() - Math.min(lastOkAt, lastDataTime || lastOkAt)) / 1000) : null;
   const live = lastOkAt && Date.now() - lastOkAt < 30000;
   $("dot").classList.toggle("live", !!live);
-  $("status").textContent = !lastOkAt ? "Finding planes…"
+  $("status").textContent = !lastOkAt ? (lastProblem || "Finding planes…")
     : `${n} flying${g ? " · " + g + " on ground" : ""} · ${source}${age > 20 ? " · " + age + "s old" : ""}`;
 }
 setInterval(updateStatus, 2000);
