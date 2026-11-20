@@ -42,7 +42,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // ▼ Paste your Cloudflare relay link between the quotes, e.g. "https://sky-relay.yourname.workers.dev"
-const RELAY = "";
+const RELAY = "https://sky-relay.vaibhav-linchon.workers.dev";
 const LAT = 12.97, LON = 77.59, NM = 80; // ~150 km
 const FEEDS = [
   ...(RELAY ? [{ name: "Your relay", url: `${RELAY.replace(/\/$/, "")}/?lat=${LAT}&lon=${LON}&dist=${NM}`, kind: "relay" }] : []),
