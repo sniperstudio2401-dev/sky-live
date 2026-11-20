@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sky Test · Bengaluru</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{--bg:#070b14;--card:#101828;--line:#1f2a3d;--txt:#e6edf7;--mut:#8a98b0;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--acc:#38bdf8}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  body{display:flex;flex-direction:column}
+  header{padding:12px 14px 8px}
+  h1{margin:0;font-size:17px;letter-spacing:.3px}
+  h1 span{color:var(--acc)}
+  .sub{color:var(--mut);font-size:12px;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  #feeds{margin:0 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:500;font-size:12px}
+  tr:last-child td{border-bottom:0}
+  tr.use td:first-child{color:var(--acc);font-weight:600}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .wait{color:var(--warn)}
+  #bar{display:flex;gap:8px;align-items:center;padding:8px 14px;color:var(--mut);font-size:12px;flex-wrap:wrap}
+  button{background:#1b2740;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12px}
+  #map{flex:1;min-height:300px;margin:0 14px 14px;border-radius:12px;border:1px solid var(--line)}
+  .leaflet-container{background:#0b1220}
+  .pl{color:var(--acc);font-size:18px;line-height:18px;text-shadow:0 0 6px #38bdf8aa;transition:transform .3s}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card);color:var(--txt)}
+  .leaflet-popup-content{margin:10px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sky Test · <span>Bengaluru</span></h1>
+  <div class="sub">Checks which free flight feeds work from this page, then shows live planes within ~150 km.</div>
+</header>
+<div id="feeds"><table><thead><tr><th>Feed</th><th>Result</th><th>Planes</th><th>Time</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div id="bar"><span id="status">Testing feeds…</span><button id="retest">Test again</button></div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const LAT = 12.97, LON = 77.59, NM = 80; // ~150 km
+const FEEDS = [
+  { name: "adsb.lol",       url: `https://api.adsb.lol/v2/point/${LAT}/${LON}/${NM}`, kind: "readsb" },
+  { name: "airplanes.live", url: `https://api.airplanes.live/v2/point/${LAT}/${LON}/${NM}`, kind: "readsb" },
+  { name: "adsb.fi",        url: `https://opendata.adsb.fi/api/v2/lat/${LAT}/lon/${LON}/dist/${NM}`, kind: "readsb" },
+  { name: "OpenSky",        url: `https://opensky-network.org/api/states/all?lamin=${LAT-1.4}&lomin=${LON-1.4}&lamax=${LAT+1.4}&lomax=${LON+1.4}`, kind: "opensky" },
+];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+// Normalise both formats to {id, call, lat, lon, altFt, kts, track, ground}
+function normalise(kind, data) {
+  if (kind === "opensky") {
+    return (data.states || []).filter(s => s[5] != null && s[6] != null).map(s => ({
+      id: s[0], call: (s[1] || "").trim(), lat: s[6], lon: s[5],
+      altFt: s[7] != null ? Math.round(s[7] * 3.281) : null,
+      kts: s[9] != null ? Math.round(s[9] * 1.944) : null,
+      track: s[10] || 0, ground: s[8]
+    }));
+  }
+  const list = data.ac || data.aircraft || [];
+  return list.filter(a => a.lat != null && a.lon != null).map(a => ({
+    id: a.hex, call: (a.flight || a.r || "").trim(), lat: a.lat, lon: a.lon,
+    altFt: typeof a.alt_baro === "number" ? a.alt_baro : null,
+    kts: a.gs != null ? Math.round(a.gs) : null,
+    track: a.track || a.true_heading || 0, ground: a.alt_baro === "ground", type: a.t
+  }));
+}
+
+async function tryFeed(f) {
+  const t0 = performance.now();
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
+    const r = await fetch(f.url, { signal: ctl.signal }); clearTimeout(to);
+    const ms = Math.round(performance.now() - t0);
+    if (!r.ok) return { ok: false, msg: "HTTP " + r.status, ms };
+    const planes = normalise(f.kind, await r.json());
+    return { ok: true, planes, ms };
+  } catch (e) {
+    return { ok: false, msg: e.name === "AbortError" ? "Timed out" : "Blocked / no reply", ms: Math.round(performance.now() - t0) };
+  }
+}
+
+// Map
+const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([LAT, LON], 8);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+  attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: "abcd", maxZoom: 18
+}).addTo(map);
+L.circleMarker([LAT, LON], { radius: 5, color: "#fbbf24", fillOpacity: 1 }).addTo(map).bindTooltip("Bengaluru");
+const markers = new Map();
+let active = null, timer = null;
+
+function draw(planes) {
+  const seen = new Set();
+  planes.forEach(p => {
+    seen.add(p.id);
+    const html = `<div class="pl" style="transform:rotate(${p.track - 45}deg)">✈</div>`;
+    const icon = L.divIcon({ html, className: "", iconSize: [18, 18], iconAnchor: [9, 9] });
+    const info = `<b>${esc(p.call || p.id)}</b>${p.type ? " · " + esc(p.type) : ""}<br>` +
+      (p.ground ? "On ground" : `${p.altFt != null ? p.altFt.toLocaleString() + " ft" : "alt ?"} · ${p.kts ?? "?"} kts`);
+    if (markers.has(p.id)) { const m = markers.get(p.id); m.setLatLng([p.lat, p.lon]); m.setIcon(icon); m.setPopupContent(info); }
+    else markers.set(p.id, L.marker([p.lat, p.lon], { icon }).addTo(map).bindPopup(info));
+  });
+  for (const [id, m] of markers) if (!seen.has(id)) { map.removeLayer(m); markers.delete(id); }
+}
+
+async function refresh() {
+  if (!active) return;
+  const r = await tryFeed(active);
+  if (r.ok) { draw(r.planes); $("status").textContent = `Live from ${active.name} · ${r.planes.length} planes · updated ${new Date().toLocaleTimeString()}`; }
+  else $("status").textContent = `${active.name}: ${r.msg} (will retry)`;
+}
+
+async function testAll() {
+  clearInterval(timer); active = null;
+  $("status").textContent = "Testing feeds…";
+  $("rows").innerHTML = FEEDS.map((f, i) => `<tr id="r${i}"><td>${f.name}</td><td class="wait">testing…</td><td>–</td><td>–</td></tr>`).join("");
+  const results = await Promise.all(FEEDS.map(tryFeed));
+  results.forEach((r, i) => {
+    $("r" + i).innerHTML = `<td>${FEEDS[i].name}</td><td class="${r.ok ? "ok" : "bad"}">${r.ok ? "Works" : esc(r.msg)}</td><td>${r.ok ? r.planes.length : "–"}</td><td>${r.ms} ms</td>`;
+  });
+  const best = results.map((r, i) => ({ r, i })).filter(x => x.r.ok).sort((a, b) => b.r.planes.length - a.r.planes.length)[0];
+  if (!best) { $("status").textContent = "No feed worked from here. Send me a screenshot of this table."; return; }
+  active = FEEDS[best.i];
+  $("r" + best.i).classList.add("use");
+  draw(best.r.planes);
+  $("status").textContent = `Using ${active.name} · ${best.r.planes.length} planes`;
+  timer = setInterval(refresh, 10000);
+}
+$("retest").onclick = testAll;
+testAll();
+</script>
+</body>
+</html>
