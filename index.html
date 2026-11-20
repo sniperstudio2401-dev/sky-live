@@ -2,143 +2,452 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sky Test · Bengaluru</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05080f">
+<title>Sky Live</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Widgets/widgets.css">
 <style>
-  :root{--bg:#070b14;--card:#101828;--line:#1f2a3d;--txt:#e6edf7;--mut:#8a98b0;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--acc:#38bdf8}
+  :root{--glass:rgba(10,16,30,.72);--line:rgba(140,170,220,.18);--txt:#e8eef9;--mut:#93a3bf;--acc:#38bdf8;--ok:#34d399;--warn:#fbbf24}
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  body{display:flex;flex-direction:column}
-  header{padding:12px 14px 8px}
-  h1{margin:0;font-size:17px;letter-spacing:.3px}
-  h1 span{color:var(--acc)}
-  .sub{color:var(--mut);font-size:12px;margin-top:2px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  #feeds{margin:0 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line)}
-  th{color:var(--mut);font-weight:500;font-size:12px}
-  tr:last-child td{border-bottom:0}
-  tr.use td:first-child{color:var(--acc);font-weight:600}
-  .ok{color:var(--ok)} .bad{color:var(--bad)} .wait{color:var(--warn)}
-  #bar{display:flex;gap:8px;align-items:center;padding:8px 14px;color:var(--mut);font-size:12px;flex-wrap:wrap}
-  button{background:#1b2740;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12px}
-  #map{flex:1;min-height:300px;margin:0 14px 14px;border-radius:12px;border:1px solid var(--line)}
-  .leaflet-container{background:#0b1220}
-  .pl{color:var(--acc);font-size:18px;line-height:18px;text-shadow:0 0 6px #38bdf8aa;transition:transform .3s}
-  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card);color:var(--txt)}
-  .leaflet-popup-content{margin:10px 12px;font-size:13px}
+  html,body{margin:0;height:100%;background:#05080f;color:var(--txt);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  #globe{position:fixed;inset:0}
+  .glass{background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  #hud{position:fixed;top:calc(10px + env(safe-area-inset-top));left:10px;padding:9px 12px;max-width:calc(100vw - 20px);cursor:pointer}
+  #hud .t{font-weight:700;font-size:16px;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+  #hud .t b{color:var(--acc);font-weight:700}
+  #hud .t .chev{color:var(--mut);font-size:12px}
+  #hud .s{color:var(--mut);font-size:12px;margin-top:2px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 8px currentColor;flex:none}
+  .dot.live{background:var(--ok);color:var(--ok);animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  #ctrls{position:fixed;right:10px;top:calc(10px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:6px;padding:6px}
+  #ctrls button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--txt);font-size:17px;display:grid;place-items:center;cursor:pointer}
+  #ctrls button.on{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.5)}
+  #ctrls button small{font-size:10px;font-weight:600}
+  #legend{position:fixed;left:10px;bottom:calc(30px + env(safe-area-inset-bottom));padding:7px 10px;font-size:11px;color:var(--mut)}
+  #legend .bar{width:150px;height:6px;border-radius:3px;margin:4px 0 2px;background:linear-gradient(90deg,#ff8a3d,#ffd166,#7ee8a1,#38bdf8,#a78bfa)}
+  #legend .ticks{display:flex;justify-content:space-between}
+  #card{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(30px + env(safe-area-inset-bottom));width:min(360px,calc(100vw - 20px));padding:12px 14px;display:none}
+  #card.on{display:block}
+  #card .h{display:flex;align-items:center;gap:8px}
+  #card .cs{font-size:20px;font-weight:800;letter-spacing:.5px}
+  #card .ty{color:var(--mut);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+  #card .x{margin-left:auto;background:none;border:0;color:var(--mut);font-size:20px;cursor:pointer}
+  #card .g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  #card .g div{background:rgba(255,255,255,.04);border-radius:10px;padding:7px 8px}
+  #card .g span{display:block;color:var(--mut);font-size:11px}
+  #card .g b{font-size:15px}
+  #card .row{display:flex;gap:8px;margin-top:10px}
+  .btn{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:rgba(56,189,248,.15);color:var(--txt);font:inherit;font-weight:600;cursor:pointer}
+  #picker{position:fixed;inset:0;background:rgba(3,6,12,.55);display:none;align-items:flex-start;justify-content:center;padding:calc(60px + env(safe-area-inset-top)) 10px 10px;z-index:10}
+  #picker.on{display:flex}
+  #picker .p{width:min(420px,100%);padding:14px}
+  #picker h3{margin:0 0 10px;font-size:15px}
+  #q{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);font:inherit;font-size:15px;outline:none}
+  #q:focus{border-color:rgba(56,189,248,.6)}
+  #res{margin-top:8px;max-height:46vh;overflow:auto}
+  .opt{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer}
+  .opt:hover,.opt:active{background:rgba(255,255,255,.06)}
+  .opt .f{font-size:20px;width:26px;text-align:center}
+  .opt .n{font-weight:600}
+  .opt .c{color:var(--mut);font-size:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--txt);font:inherit;font-size:13px;cursor:pointer}
+  .sec{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-top:12px}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;background:#05080f;color:var(--mut);transition:opacity .8s;z-index:20}
+  #loading.gone{opacity:0;pointer-events:none}
+  .cesium-viewer-bottom{transform:scale(.8);transform-origin:left bottom;opacity:.7}
+  .cesium-widget-credits{font-size:10px}
 </style>
 </head>
 <body>
-<header>
-  <h1>Sky Test · <span>Bengaluru</span></h1>
-  <div class="sub">Checks which free flight feeds work from this page, then shows live planes within ~150 km.</div>
-</header>
-<div id="feeds"><table><thead><tr><th>Feed</th><th>Result</th><th>Planes</th><th>Time</th></tr></thead><tbody id="rows"></tbody></table></div>
-<div id="bar"><span id="status">Testing feeds…</span><button id="retest">Test again</button></div>
-<div id="map"></div>
+<div id="globe"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="hud" class="glass" title="Change place">
+  <div class="t"><span class="dot" id="dot"></span>Sky Live · <b id="placeName">…</b><span class="chev">▾</span></div>
+  <div class="s" id="status">Starting…</div>
+</div>
+
+<div id="ctrls" class="glass">
+  <button id="bHome" title="Back to my place">⌂</button>
+  <button id="bRange" title="Range"><small id="rangeTxt">280km</small></button>
+  <button id="bLabels" title="Flight labels">🏷</button>
+  <button id="bLight" title="Real day/night lighting">☀</button>
+</div>
+
+<div id="legend" class="glass">Altitude<div class="bar"></div><div class="ticks"><span>0</span><span>10k</span><span>20k</span><span>30k</span><span>40k ft</span></div></div>
+
+<div id="card" class="glass">
+  <div class="h"><span class="cs" id="cCs">—</span><span class="ty" id="cTy">—</span><button class="x" id="cX">×</button></div>
+  <div class="g">
+    <div><span>Altitude</span><b id="cAlt">—</b></div>
+    <div><span>Speed</span><b id="cSpd">—</b></div>
+    <div><span>Heading</span><b id="cHdg">—</b></div>
+  </div>
+  <div class="row"><button class="btn" id="cFly">Fly to it</button></div>
+</div>
+
+<div id="picker">
+  <div class="p glass">
+    <h3>Choose a place</h3>
+    <input id="q" placeholder="Search a city or country…" autocomplete="off">
+    <div id="res"></div>
+    <div class="sec">Quick picks</div>
+    <div class="chips" id="chips"></div>
+    <div class="chips"><button class="chip" id="useLoc">📍 Use my location</button></div>
+  </div>
+</div>
+
+<div id="loading">Loading the globe…</div>
+
+<script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/";</script>
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Cesium.js"></script>
 <script>
-// ▼ Paste your Cloudflare relay link between the quotes, e.g. "https://sky-relay.yourname.workers.dev"
+// ───────────────── settings ─────────────────
 const RELAY = "https://sky-relay.vaibhav-linchon.workers.dev";
-const LAT = 12.97, LON = 77.59, NM = 80; // ~150 km
-const FEEDS = [
-  ...(RELAY ? [{ name: "Your relay", url: `${RELAY.replace(/\/$/, "")}/?lat=${LAT}&lon=${LON}&dist=${NM}`, kind: "relay" }] : []),
-  { name: "adsb.lol",       url: `https://api.adsb.lol/v2/point/${LAT}/${LON}/${NM}`, kind: "readsb" },
-  { name: "airplanes.live", url: `https://api.airplanes.live/v2/point/${LAT}/${LON}/${NM}`, kind: "readsb" },
-  { name: "adsb.fi",        url: `https://opendata.adsb.fi/api/v2/lat/${LAT}/lon/${LON}/dist/${NM}`, kind: "readsb" },
-  { name: "OpenSky",        url: `https://opensky-network.org/api/states/all?lamin=${LAT-1.4}&lomin=${LON-1.4}&lamax=${LAT+1.4}&lomax=${LON+1.4}`, kind: "opensky" },
+const REFRESH_MS = 8000;
+const RANGES = [{ nm: 80, km: 150 }, { nm: 150, km: 280 }, { nm: 250, km: 460 }];
+const QUICK = [
+  { name: "Bengaluru", country: "India", cc: "IN", lat: 12.97, lon: 77.59 },
+  { name: "Mumbai", country: "India", cc: "IN", lat: 19.08, lon: 72.88 },
+  { name: "Delhi", country: "India", cc: "IN", lat: 28.61, lon: 77.21 },
+  { name: "Chennai", country: "India", cc: "IN", lat: 13.08, lon: 80.27 },
+  { name: "Hyderabad", country: "India", cc: "IN", lat: 17.39, lon: 78.49 },
+  { name: "Dubai", country: "United Arab Emirates", cc: "AE", lat: 25.20, lon: 55.27 },
+  { name: "Singapore", country: "Singapore", cc: "SG", lat: 1.35, lon: 103.82 },
+  { name: "London", country: "United Kingdom", cc: "GB", lat: 51.51, lon: -0.13 },
+  { name: "New York", country: "United States", cc: "US", lat: 40.71, lon: -74.01 },
 ];
+
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const flag = cc => cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "🌍";
+const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
-// Normalise both formats to {id, call, lat, lon, altFt, kts, track, ground}
-function normalise(kind, data) {
-  if (kind === "relay") return data.planes || [];
-  if (kind === "opensky") {
-    return (data.states || []).filter(s => s[5] != null && s[6] != null).map(s => ({
-      id: s[0], call: (s[1] || "").trim(), lat: s[6], lon: s[5],
-      altFt: s[7] != null ? Math.round(s[7] * 3.281) : null,
-      kts: s[9] != null ? Math.round(s[9] * 1.944) : null,
-      track: s[10] || 0, ground: s[8]
-    }));
+let place = load("sky.place", QUICK[0]);
+let rangeIdx = load("sky.range", 1);
+let labelsOn = load("sky.labels", true);
+let realLight = load("sky.light", true);
+
+// ───────────────── globe ─────────────────
+const C = Cesium;
+const viewer = new C.Viewer("globe", {
+  baseLayer: false, animation: false, timeline: false, baseLayerPicker: false, geocoder: false,
+  homeButton: false, sceneModePicker: false, navigationHelpButton: false, fullscreenButton: false,
+  infoBox: false, selectionIndicator: false, shouldAnimate: true, msaaSamples: 4,
+});
+const scene = viewer.scene, globe = scene.globe;
+viewer.clock.clockStep = C.ClockStep.SYSTEM_CLOCK;
+
+const layers = viewer.imageryLayers;
+const dayLayer = layers.addImageryProvider(new C.UrlTemplateImageryProvider({
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  maximumLevel: 18, credit: "Imagery © Esri, Maxar, Earthstar Geographics",
+}));
+const nightLayer = layers.addImageryProvider(new C.UrlTemplateImageryProvider({
+  url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
+  maximumLevel: 8, credit: "Night lights © NASA Black Marble",
+}));
+nightLayer.dayAlpha = 0.0; nightLayer.nightAlpha = 1.0; nightLayer.brightness = 1.8;
+const labelLayer = layers.addImageryProvider(new C.UrlTemplateImageryProvider({
+  url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  maximumLevel: 18,
+}));
+labelLayer.alpha = 0.85;
+
+globe.baseColor = C.Color.fromCssColorString("#0b1730");
+globe.showGroundAtmosphere = true;
+globe.dynamicAtmosphereLighting = true;
+globe.dynamicAtmosphereLightingFromSun = true;
+scene.skyAtmosphere.show = true;
+scene.fog.enabled = true;
+scene.screenSpaceCameraController.minimumZoomDistance = 1500;
+scene.screenSpaceCameraController.maximumZoomDistance = 2.5e7;
+
+function applyLight() {
+  globe.enableLighting = realLight;
+  nightLayer.show = realLight;
+  $("bLight").classList.toggle("on", realLight);
+  $("bLight").textContent = realLight ? "☀" : "🌤";
+}
+applyLight();
+
+// ───────────────── planes ─────────────────
+const STOPS = [[0, [255, 138, 61]], [10000, [255, 209, 102]], [20000, [126, 232, 161]], [30000, [56, 189, 248]], [40000, [167, 139, 250]]];
+function altColor(ft, ground) {
+  if (ground) return "#8892a6";
+  ft = Math.max(0, Math.min(40000, ft || 0));
+  for (let i = 1; i < STOPS.length; i++) if (ft <= STOPS[i][0]) {
+    const [a0, c0] = STOPS[i - 1], [a1, c1] = STOPS[i], k = (ft - a0) / (a1 - a0);
+    return "rgb(" + c0.map((v, j) => Math.round(v + (c1[j] - v) * k)).join(",") + ")";
   }
-  const list = data.ac || data.aircraft || [];
-  return list.filter(a => a.lat != null && a.lon != null).map(a => ({
-    id: a.hex, call: (a.flight || a.r || "").trim(), lat: a.lat, lon: a.lon,
-    altFt: typeof a.alt_baro === "number" ? a.alt_baro : null,
-    kts: a.gs != null ? Math.round(a.gs) : null,
-    track: a.track || a.true_heading || 0, ground: a.alt_baro === "ground", type: a.t
-  }));
+  return "rgb(167,139,250)";
+}
+const PLANE_PATH = "M32 4c2.2 0 3.4 2.6 3.4 6v12l20 11v5l-20-5v11l6 5v4l-9.4-3-9.4 3v-4l6-5V33l-20 5v-5l20-11V10c0-3.4 1.2-6 3.4-6z";
+const iconCache = {};
+function icon(color) {
+  if (!iconCache[color]) {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><defs><filter id='g' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='3'/></filter></defs><path d='${PLANE_PATH}' fill='${color}' filter='url(#g)' opacity='.95'/><path d='${PLANE_PATH}' fill='${color}' stroke='white' stroke-width='1.3'/></svg>`;
+    iconCache[color] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  return iconCache[color];
 }
 
-async function tryFeed(f) {
-  const t0 = performance.now();
+const planes = new Map();
+let selected = null;
+const BLEND_MS = 2500;
+const scratch = new C.Cartesian3();
+
+// Where a plane should be at time t, moving straight at its last speed and heading
+function predict(f, t, result) {
+  const dt = Math.min(Math.max((t - f.t) / 1000, 0), 60);
+  const d = f.v * dt, br = f.trk * Math.PI / 180;
+  const lat = f.lat + d * Math.cos(br) / 111320;
+  const lon = f.lon + d * Math.sin(br) / (111320 * Math.cos(f.lat * Math.PI / 180));
+  return C.Cartesian3.fromDegrees(lon, lat, f.alt, undefined, result);
+}
+// Predicted position, plus a correction that fades out so planes glide instead of jumping
+function displayPos(p, t, result) {
+  const base = predict(p.fix, t, result);
+  const k = 1 - (t - p.fixAt) / BLEND_MS;
+  if (k > 0) {
+    const e = k * k * (3 - 2 * k);
+    C.Cartesian3.add(base, C.Cartesian3.multiplyByScalar(p.off, e, scratch), base);
+  }
+  return base;
+}
+function northAt(lat, lon) {
+  const la = lat * Math.PI / 180, lo = lon * Math.PI / 180;
+  return new C.Cartesian3(-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la));
+}
+
+function addPlane(q, fix) {
+  const p = { id: q.id, fix, fixAt: Date.now(), off: new C.Cartesian3(), trail: [], miss: 0, q };
+  p.north = northAt(fix.lat, fix.lon);
+  p.color = altColor(q.altFt, q.ground);
+  p.pos = new C.Cartesian3();
+  const posProp = new C.CallbackProperty(() => displayPos(p, Date.now(), p.pos), false);
+  p.ent = viewer.entities.add({
+    id: q.id,
+    position: posProp,
+    billboard: {
+      image: icon(p.color),
+      rotation: new C.CallbackProperty(() => -p.fix.trk * Math.PI / 180, false),
+      alignedAxis: new C.CallbackProperty(() => p.north, false),
+      scale: new C.CallbackProperty(() => (selected === p.id ? 0.95 : 0.6) * (p.q.ground ? 0.7 : 1), false),
+      scaleByDistance: new C.NearFarScalar(3e4, 1.0, 4e6, 0.35),
+    },
+    label: {
+      text: q.call || q.id, font: "600 13px system-ui, sans-serif",
+      fillColor: C.Color.WHITE, outlineColor: C.Color.fromCssColorString("#05080f"), outlineWidth: 3,
+      style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -24),
+      distanceDisplayCondition: new C.DistanceDisplayCondition(0, 6e5), show: labelsOn && !q.ground,
+    },
+  });
+  if (!q.ground) {
+    p.trailEnt = viewer.entities.add({
+      id: q.id + "#trail",
+      polyline: {
+        positions: new C.CallbackProperty(() => p.trail.length ? p.trail.concat([p.pos]) : [], false),
+        width: 5,
+        material: new C.PolylineGlowMaterialProperty({ glowPower: 0.3, taperPower: 0.6, color: new C.CallbackProperty(() => C.Color.fromCssColorString(p.color).withAlpha(0.9), false) }),
+      },
+    });
+    p.dropEnt = viewer.entities.add({
+      id: q.id + "#drop",
+      polyline: {
+        positions: new C.CallbackProperty(() => {
+          const c = C.Cartographic.fromCartesian(p.pos);
+          return [p.pos, C.Cartesian3.fromRadians(c.longitude, c.latitude, 0)];
+        }, false),
+        width: 1,
+        material: new C.PolylineDashMaterialProperty({ color: C.Color.WHITE.withAlpha(0.3), dashLength: 12 }),
+        distanceDisplayCondition: new C.DistanceDisplayCondition(0, 4e5),
+      },
+    });
+  }
+  planes.set(q.id, p);
+}
+
+function removePlane(p) {
+  viewer.entities.remove(p.ent);
+  if (p.trailEnt) viewer.entities.remove(p.trailEnt);
+  if (p.dropEnt) viewer.entities.remove(p.dropEnt);
+  planes.delete(p.id);
+  if (selected === p.id) closeCard();
+}
+function clearPlanes() { [...planes.values()].forEach(removePlane); }
+
+// Record trail points once a second (about 2 minutes of trail)
+setInterval(() => {
+  for (const p of planes.values()) {
+    if (p.q.ground || !p.trailEnt) continue;
+    p.trail.push(C.Cartesian3.clone(p.pos));
+    if (p.trail.length > 120) p.trail.shift();
+  }
+}, 1000);
+
+let lastDataTime = 0, lastOkAt = 0, source = "", fetching = false;
+function applyData(data) {
+  if (!data.planes) return;
+  if (data.time && data.time === lastDataTime) return; // same snapshot as before
+  lastDataTime = data.time || Date.now();
+  const now = Date.now(), seen = new Set();
+  for (const q of data.planes) {
+    if (q.lat == null || q.lon == null || !q.id) continue;
+    seen.add(q.id);
+    const fix = { lat: q.lat, lon: q.lon, alt: q.ground ? 0 : Math.max(0, (q.altFt || 0) * 0.3048), v: (q.kts || 0) * 0.5144, trk: q.track || 0, t: Math.min(lastDataTime, now) };
+    const p = planes.get(q.id);
+    if (!p) { addPlane(q, fix); continue; }
+    const cur = displayPos(p, now, new C.Cartesian3());
+    p.fix = fix; p.fixAt = now; p.q = q; p.miss = 0;
+    const base = predict(fix, now, new C.Cartesian3());
+    C.Cartesian3.subtract(cur, base, p.off);
+    if (C.Cartesian3.magnitude(p.off) > 20000) { p.off = new C.Cartesian3(); p.trail = []; }
+    p.north = northAt(fix.lat, fix.lon);
+    const col = altColor(q.altFt, q.ground);
+    if (col !== p.color) { p.color = col; p.ent.billboard.image = icon(col); }
+    p.ent.label.text = q.call || q.id;
+  }
+  for (const p of [...planes.values()]) if (!seen.has(p.id) && ++p.miss >= 3) removePlane(p);
+  source = data.source || "";
+  lastOkAt = Date.now();
+}
+
+async function poll() {
+  if (fetching || document.hidden) return;
+  fetching = true;
   try {
-    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 12000);
-    const r = await fetch(f.url, { signal: ctl.signal }); clearTimeout(to);
-    const ms = Math.round(performance.now() - t0);
-    if (!r.ok) return { ok: false, msg: "HTTP " + r.status, ms };
+    const r = await fetch(`${RELAY}/?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&dist=${RANGES[rangeIdx].nm}`);
     const data = await r.json();
-    const planes = normalise(f.kind, data);
-    if (f.kind === "relay" && data.source) f.label = "relay via " + data.source;
-    return { ok: true, planes, ms };
-  } catch (e) {
-    return { ok: false, msg: e.name === "AbortError" ? "Timed out" : "Blocked / no reply", ms: Math.round(performance.now() - t0) };
-  }
+    if (data.planes) applyData(data);
+  } catch (e) { /* keep showing what we have */ }
+  fetching = false;
+  updateStatus();
 }
+function updateStatus() {
+  const n = [...planes.values()].filter(p => !p.q.ground).length, g = planes.size - n;
+  const age = lastOkAt ? Math.round((Date.now() - Math.min(lastOkAt, lastDataTime || lastOkAt)) / 1000) : null;
+  const live = lastOkAt && Date.now() - lastOkAt < 30000;
+  $("dot").classList.toggle("live", !!live);
+  $("status").textContent = !lastOkAt ? "Finding planes…"
+    : `${n} flying${g ? " · " + g + " on ground" : ""} · ${source}${age > 20 ? " · " + age + "s old" : ""}`;
+}
+setInterval(updateStatus, 2000);
+setInterval(poll, REFRESH_MS);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
 
-// Map
-const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([LAT, LON], 8);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-  attribution: "Tiles &copy; Esri", maxZoom: 16
-}).addTo(map);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(map);
-L.circleMarker([LAT, LON], { radius: 5, color: "#fbbf24", fillOpacity: 1 }).addTo(map).bindTooltip("Bengaluru");
-const markers = new Map();
-let active = null, timer = null;
-
-function draw(planes) {
-  const seen = new Set();
-  planes.forEach(p => {
-    seen.add(p.id);
-    const html = `<div class="pl" style="transform:rotate(${p.track - 45}deg)">✈</div>`;
-    const icon = L.divIcon({ html, className: "", iconSize: [18, 18], iconAnchor: [9, 9] });
-    const info = `<b>${esc(p.call || p.id)}</b>${p.type ? " · " + esc(p.type) : ""}<br>` +
-      (p.ground ? "On ground" : `${p.altFt != null ? p.altFt.toLocaleString() + " ft" : "alt ?"} · ${p.kts ?? "?"} kts`);
-    if (markers.has(p.id)) { const m = markers.get(p.id); m.setLatLng([p.lat, p.lon]); m.setIcon(icon); m.setPopupContent(info); }
-    else markers.set(p.id, L.marker([p.lat, p.lon], { icon }).addTo(map).bindPopup(info));
+// ───────────────── camera ─────────────────
+function flyHome(duration = 2.5) {
+  const km = RANGES[rangeIdx].km;
+  const h = Math.max(120000, km * 1000 * 0.9);
+  const back = (h / Math.tan(C.Math.toRadians(40))) / 111320;
+  viewer.camera.flyTo({
+    destination: C.Cartesian3.fromDegrees(place.lon, place.lat - back, h),
+    orientation: { heading: 0, pitch: C.Math.toRadians(-40), roll: 0 }, duration,
   });
-  for (const [id, m] of markers) if (!seen.has(id)) { map.removeLayer(m); markers.delete(id); }
 }
-
-async function refresh() {
-  if (!active) return;
-  const r = await tryFeed(active);
-  if (r.ok) { draw(r.planes); $("status").textContent = `Live from ${active.label || active.name} · ${r.planes.length} planes · updated ${new Date().toLocaleTimeString()}`; }
-  else $("status").textContent = `${active.name}: ${r.msg} (will retry)`;
-}
-
-async function testAll() {
-  clearInterval(timer); active = null;
-  $("status").textContent = "Testing feeds…";
-  $("rows").innerHTML = FEEDS.map((f, i) => `<tr id="r${i}"><td>${f.name}</td><td class="wait">testing…</td><td>–</td><td>–</td></tr>`).join("");
-  const results = await Promise.all(FEEDS.map(tryFeed));
-  results.forEach((r, i) => {
-    $("r" + i).innerHTML = `<td>${FEEDS[i].name}</td><td class="${r.ok ? "ok" : "bad"}">${r.ok ? "Works" : esc(r.msg)}</td><td>${r.ok ? r.planes.length : "–"}</td><td>${r.ms} ms</td>`;
+let homeMark = null;
+function setPlace(p, fly = true) {
+  const changed = !place || Math.abs(p.lat - place.lat) > 0.01 || Math.abs(p.lon - place.lon) > 0.01;
+  place = { name: p.name, country: p.country || "", cc: p.cc || "", lat: +p.lat, lon: +p.lon };
+  save("sky.place", place);
+  $("placeName").textContent = place.name;
+  document.title = "Sky Live · " + place.name;
+  if (homeMark) viewer.entities.remove(homeMark);
+  homeMark = viewer.entities.add({
+    position: C.Cartesian3.fromDegrees(place.lon, place.lat, 0),
+    point: { pixelSize: 9, color: C.Color.fromCssColorString("#fbbf24"), outlineColor: C.Color.WHITE.withAlpha(0.8), outlineWidth: 2 },
   });
-  const best = results.map((r, i) => ({ r, i })).filter(x => x.r.ok).sort((a, b) => b.r.planes.length - a.r.planes.length)[0];
-  if (!best) { $("status").textContent = "No feed worked from here. Send me a screenshot of this table."; return; }
-  active = FEEDS[best.i];
-  $("r" + best.i).classList.add("use");
-  draw(best.r.planes);
-  $("status").textContent = `Using ${active.label || active.name} · ${best.r.planes.length} planes`;
-  timer = setInterval(refresh, 10000);
+  if (changed) { clearPlanes(); lastDataTime = 0; lastOkAt = 0; }
+  if (fly) flyHome();
+  poll();
 }
-$("retest").onclick = testAll;
-testAll();
+
+// ───────────────── tap a plane ─────────────────
+const handler = new C.ScreenSpaceEventHandler(scene.canvas);
+handler.setInputAction(e => {
+  const o = scene.pick(e.position);
+  const id = o && o.id && o.id.id ? String(o.id.id).split("#")[0] : null;
+  if (id && planes.has(id)) openCard(id); else closeCard();
+}, C.ScreenSpaceEventType.LEFT_CLICK);
+
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+function openCard(id) { selected = id; $("card").classList.add("on"); fillCard(); }
+function closeCard() { selected = null; $("card").classList.remove("on"); }
+function fillCard() {
+  const p = planes.get(selected); if (!p) return closeCard();
+  const q = p.q;
+  $("cCs").textContent = q.call || q.id.toUpperCase();
+  $("cTy").textContent = q.type || "Aircraft";
+  $("cAlt").textContent = q.ground ? "Ground" : (q.altFt != null ? q.altFt.toLocaleString() + " ft" : "—");
+  $("cSpd").textContent = q.kts != null ? Math.round(q.kts * 1.852) + " km/h" : "—";
+  $("cHdg").textContent = Math.round(q.track || 0) + "° " + COMPASS[Math.round((q.track || 0) / 45) % 8];
+}
+setInterval(() => { if (selected) fillCard(); }, 1000);
+$("cX").onclick = closeCard;
+$("cFly").onclick = () => {
+  const p = planes.get(selected); if (!p) return;
+  const c = C.Cartographic.fromCartesian(p.pos);
+  viewer.camera.flyToBoundingSphere(new C.BoundingSphere(C.Cartesian3.fromRadians(c.longitude, c.latitude, c.height), 1500), {
+    offset: new C.HeadingPitchRange(C.Math.toRadians(p.fix.trk + 180), C.Math.toRadians(-20), 9000), duration: 2,
+  });
+};
+
+// ───────────────── controls ─────────────────
+$("rangeTxt").textContent = RANGES[rangeIdx].km + "km";
+$("bLabels").classList.toggle("on", labelsOn);
+$("bHome").onclick = () => flyHome();
+$("bRange").onclick = () => {
+  rangeIdx = (rangeIdx + 1) % RANGES.length; save("sky.range", rangeIdx);
+  $("rangeTxt").textContent = RANGES[rangeIdx].km + "km";
+  flyHome(1.5); poll();
+};
+$("bLabels").onclick = () => {
+  labelsOn = !labelsOn; save("sky.labels", labelsOn);
+  $("bLabels").classList.toggle("on", labelsOn);
+  for (const p of planes.values()) p.ent.label.show = labelsOn && !p.q.ground;
+};
+$("bLight").onclick = () => { realLight = !realLight; save("sky.light", realLight); applyLight(); };
+
+// ───────────────── place picker ─────────────────
+const picker = $("picker");
+$("hud").onclick = () => { picker.classList.add("on"); $("q").value = ""; $("res").innerHTML = ""; setTimeout(() => $("q").focus(), 50); };
+picker.onclick = e => { if (e.target === picker) picker.classList.remove("on"); };
+function choose(p) { picker.classList.remove("on"); setPlace(p); }
+$("chips").innerHTML = QUICK.map((c, i) => `<button class="chip" data-i="${i}">${flag(c.cc)} ${esc(c.name)}</button>`).join("");
+$("chips").onclick = e => { const b = e.target.closest("[data-i]"); if (b) choose(QUICK[+b.dataset.i]); };
+let results = [], searchT;
+$("q").oninput = () => {
+  clearTimeout(searchT);
+  const term = $("q").value.trim();
+  if (term.length < 2) { $("res").innerHTML = ""; return; }
+  searchT = setTimeout(async () => {
+    try {
+      const r = await fetch("https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&format=json&name=" + encodeURIComponent(term));
+      const d = await r.json();
+      results = (d.results || []).map(x => ({ name: x.name, country: x.country || "", region: x.admin1 || "", cc: x.country_code || "", lat: x.latitude, lon: x.longitude }));
+      $("res").innerHTML = results.length ? results.map((x, i) =>
+        `<div class="opt" data-i="${i}"><span class="f">${flag(x.cc)}</span><div><div class="n">${esc(x.name)}</div><div class="c">${esc([x.region, x.country].filter(Boolean).join(", "))}</div></div></div>`).join("")
+        : `<div class="opt"><div class="c">No places found</div></div>`;
+    } catch (e) { $("res").innerHTML = `<div class="opt"><div class="c">Search unavailable right now</div></div>`; }
+  }, 300);
+};
+$("res").onclick = e => { const o = e.target.closest("[data-i]"); if (o) choose(results[+o.dataset.i]); };
+$("useLoc").onclick = () => {
+  if (!navigator.geolocation) return;
+  $("useLoc").textContent = "📍 Finding you…";
+  navigator.geolocation.getCurrentPosition(
+    pos => { $("useLoc").textContent = "📍 Use my location"; choose({ name: "My location", country: "", cc: "", lat: pos.coords.latitude, lon: pos.coords.longitude }); },
+    () => { $("useLoc").textContent = "📍 Location not allowed"; },
+    { timeout: 10000 }
+  );
+};
+
+// ───────────────── start ─────────────────
+viewer.camera.setView({ destination: C.Cartesian3.fromDegrees(place.lon, place.lat - 10, 2.2e7) });
+setTimeout(() => { $("loading").classList.add("gone"); setPlace(place, false); flyHome(4); }, 700);
 </script>
 </body>
 </html>
