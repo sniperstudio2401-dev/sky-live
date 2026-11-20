@@ -203,7 +203,7 @@ const scratch = new C.Cartesian3();
 
 // Where a plane should be at time t, moving straight at its last speed and heading
 function predict(f, t, result) {
-  const dt = Math.min(Math.max((t - f.t) / 1000, 0), 60);
+  const dt = Math.min(Math.max((t - f.t) / 1000, 0), 300); // keep gliding up to 5 min without fresh data
   const d = f.v * dt, br = f.trk * Math.PI / 180;
   const lat = f.lat + d * Math.cos(br) / 111320;
   const lon = f.lon + d * Math.sin(br) / (111320 * Math.cos(f.lat * Math.PI / 180));
@@ -360,10 +360,10 @@ async function poll() {
 function updateStatus() {
   const n = [...planes.values()].filter(p => !p.q.ground).length, g = planes.size - n;
   const age = lastOkAt ? Math.round((Date.now() - Math.min(lastOkAt, lastDataTime || lastOkAt)) / 1000) : null;
-  const live = lastOkAt && Date.now() - lastOkAt < 30000;
+  const live = lastOkAt && (Date.now() - (lastDataTime || lastOkAt)) < 30000;
   $("dot").classList.toggle("live", !!live);
   $("status").textContent = !lastOkAt ? (lastProblem || "Finding planes…")
-    : `${n} flying${g ? " · " + g + " on ground" : ""} · ${source}${age > 20 ? " · " + age + "s old" : ""}`;
+    : `${n} flying${g ? " · " + g + " on ground" : ""} · ${age > 30 ? "feed paused " + age + "s, planes estimated" : "live via " + source}`;
 }
 setInterval(updateStatus, 2000);
 setInterval(poll, REFRESH_MS);
