@@ -41,8 +41,11 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// ▼ Paste your Cloudflare relay link between the quotes, e.g. "https://sky-relay.yourname.workers.dev"
+const RELAY = "";
 const LAT = 12.97, LON = 77.59, NM = 80; // ~150 km
 const FEEDS = [
+  ...(RELAY ? [{ name: "Your relay", url: `${RELAY.replace(/\/$/, "")}/?lat=${LAT}&lon=${LON}&dist=${NM}`, kind: "relay" }] : []),
   { name: "adsb.lol",       url: `https://api.adsb.lol/v2/point/${LAT}/${LON}/${NM}`, kind: "readsb" },
   { name: "airplanes.live", url: `https://api.airplanes.live/v2/point/${LAT}/${LON}/${NM}`, kind: "readsb" },
   { name: "adsb.fi",        url: `https://opendata.adsb.fi/api/v2/lat/${LAT}/lon/${LON}/dist/${NM}`, kind: "readsb" },
@@ -53,6 +56,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt
 
 // Normalise both formats to {id, call, lat, lon, altFt, kts, track, ground}
 function normalise(kind, data) {
+  if (kind === "relay") return data.planes || [];
   if (kind === "opensky") {
     return (data.states || []).filter(s => s[5] != null && s[6] != null).map(s => ({
       id: s[0], call: (s[1] || "").trim(), lat: s[6], lon: s[5],
@@ -77,7 +81,9 @@ async function tryFeed(f) {
     const r = await fetch(f.url, { signal: ctl.signal }); clearTimeout(to);
     const ms = Math.round(performance.now() - t0);
     if (!r.ok) return { ok: false, msg: "HTTP " + r.status, ms };
-    const planes = normalise(f.kind, await r.json());
+    const data = await r.json();
+    const planes = normalise(f.kind, data);
+    if (f.kind === "relay" && data.source) f.label = "relay via " + data.source;
     return { ok: true, planes, ms };
   } catch (e) {
     return { ok: false, msg: e.name === "AbortError" ? "Timed out" : "Blocked / no reply", ms: Math.round(performance.now() - t0) };
@@ -86,9 +92,10 @@ async function tryFeed(f) {
 
 // Map
 const map = L.map("map", { zoomControl: false, attributionControl: true }).setView([LAT, LON], 8);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-  attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: "abcd", maxZoom: 18
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+  attribution: "Tiles &copy; Esri", maxZoom: 16
 }).addTo(map);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(map);
 L.circleMarker([LAT, LON], { radius: 5, color: "#fbbf24", fillOpacity: 1 }).addTo(map).bindTooltip("Bengaluru");
 const markers = new Map();
 let active = null, timer = null;
@@ -110,7 +117,7 @@ function draw(planes) {
 async function refresh() {
   if (!active) return;
   const r = await tryFeed(active);
-  if (r.ok) { draw(r.planes); $("status").textContent = `Live from ${active.name} · ${r.planes.length} planes · updated ${new Date().toLocaleTimeString()}`; }
+  if (r.ok) { draw(r.planes); $("status").textContent = `Live from ${active.label || active.name} · ${r.planes.length} planes · updated ${new Date().toLocaleTimeString()}`; }
   else $("status").textContent = `${active.name}: ${r.msg} (will retry)`;
 }
 
@@ -127,7 +134,7 @@ async function testAll() {
   active = FEEDS[best.i];
   $("r" + best.i).classList.add("use");
   draw(best.r.planes);
-  $("status").textContent = `Using ${active.name} · ${best.r.planes.length} planes`;
+  $("status").textContent = `Using ${active.label || active.name} · ${best.r.planes.length} planes`;
   timer = setInterval(refresh, 10000);
 }
 $("retest").onclick = testAll;
