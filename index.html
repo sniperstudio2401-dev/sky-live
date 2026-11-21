@@ -432,22 +432,100 @@ function rarity(q, model) {
   return null;
 }
 
-// One shader per tail colour: repaints the blue tail, and keeps the plane softly lit on the night side
+// ── Airline colour schemes (colours only: no logos or names) ──
+// body = upper fuselage, belly = lower fuselage, stripe = band under the windows (optional),
+// tail / accent = the fin (accent is the upper-rear part) and winglets, engine = nacelles
+const W = "#f4f5f7";
+const LIVERY = {
+  IGO: { body: W, belly: "#1d3c9e", tail: "#1d3c9e", accent: "#2f55c9", engine: "#1d3c9e" },
+  AIC: { body: W, belly: "#6d1530", tail: "#b0122f", accent: "#d4a24c", engine: "#6d1530" },
+  AXB: { body: W, belly: W, stripe: "#e8572a", tail: "#e8572a", accent: "#7a1f5c", engine: "#e8572a" },
+  IAD: { body: W, belly: W, stripe: "#e8572a", tail: "#e8572a", accent: "#7a1f5c", engine: "#e8572a" },
+  AKJ: { body: W, belly: "#ff6d38", tail: "#ff6d38", accent: "#5b2a86", engine: "#ff6d38" },
+  SEJ: { body: W, belly: "#d71921", tail: "#d71921", accent: "#ffc20e", engine: "#d71921" },
+  VTI: { body: W, belly: "#5b2c6f", tail: "#5b2c6f", accent: "#c9a227", engine: "#5b2c6f" },
+  SDG: { body: W, belly: W, stripe: "#1b3f8b", tail: "#1b3f8b", accent: "#e1251b", engine: "#1b3f8b" },
+  FLG: { body: W, belly: "#00a19a", tail: "#00a19a", accent: "#f7a600", engine: "#00a19a" },
+  LLR: { body: W, belly: W, stripe: "#c8102e", tail: "#c8102e", accent: "#f2a900", engine: "#c8102e" },
+  UAE: { body: W, belly: W, tail: "#d71a21", accent: "#00843d", engine: "#e9ebee" },
+  QTR: { body: "#eceff2", belly: "#eceff2", tail: "#5c0632", accent: "#7a1244", engine: "#5c0632" },
+  ETD: { body: "#e8dfcf", belly: "#d6c9b1", tail: "#b38f4f", accent: "#7a5c2e", engine: "#e8dfcf" },
+  FDB: { body: W, belly: "#0e4c92", stripe: "#f47920", tail: "#0e4c92", accent: "#f47920", engine: "#0e4c92" },
+  OMA: { body: W, belly: W, tail: "#8a6a3b", accent: "#0f6f6f", engine: "#8a6a3b" },
+  GFA: { body: W, belly: W, tail: "#a08443", accent: "#c8102e", engine: W },
+  SVA: { body: W, belly: "#d9d2c0", tail: "#00563f", accent: "#c8a94b", engine: "#00563f" },
+  KAC: { body: W, belly: W, stripe: "#2b4a8b", tail: "#2b4a8b", accent: "#c8a94b", engine: "#2b4a8b" },
+  ABY: { body: W, belly: W, tail: "#c8102e", accent: "#58595b", engine: "#c8102e" },
+  SIA: { body: W, belly: W, stripe: "#1d2c6b", tail: "#1d2c6b", accent: "#f5a623", engine: W },
+  MAS: { body: W, belly: W, stripe: "#c8102e", tail: "#0b2c80", accent: "#c8102e", engine: "#0b2c80" },
+  THA: { body: W, belly: W, tail: "#5d1f73", accent: "#d4a017", engine: "#5d1f73" },
+  CPA: { body: W, belly: "#dfe3e6", stripe: "#006564", tail: "#006564", accent: "#e9ebee", engine: "#dfe3e6" },
+  JAL: { body: W, belly: W, tail: "#e9ebee", accent: "#e60012", engine: W },
+  ANA: { body: W, belly: W, stripe: "#13448f", tail: "#13448f", accent: "#00a0e9", engine: "#13448f" },
+  ALK: { body: W, belly: W, stripe: "#1f4e9a", tail: "#1f4e9a", accent: "#c8102e", engine: "#1f4e9a" },
+  ETH: { body: W, belly: W, tail: "#1f8a3a", accent: "#fcd116", engine: W },
+  THY: { body: W, belly: W, tail: "#e30a17", accent: "#e30a17", engine: W },
+  DLH: { body: W, belly: W, tail: "#0a1d3d", accent: "#0a1d3d", engine: "#0a1d3d" },
+  BAW: { body: W, belly: "#1c3f94", tail: W, accent: "#c8102e", engine: "#9aa3ad" },
+  VIR: { body: W, belly: W, tail: "#c8102e", accent: "#5b1a4a", engine: "#9aa3ad" },
+  AFR: { body: W, belly: W, tail: W, accent: "#002157", engine: W },
+  KLM: { body: "#00a1de", belly: W, tail: "#00a1de", accent: "#00a1de", engine: "#00a1de" },
+  UAL: { body: W, belly: "#0c2340", tail: "#0c2340", accent: "#0b5ea8", engine: "#0c2340" },
+  AAL: { body: "#c5ccd4", belly: "#c5ccd4", tail: "#c8102e", accent: "#0078d2", engine: "#c5ccd4" },
+  DAL: { body: W, belly: "#0a1d3d", tail: "#9b1631", accent: "#c8102e", engine: "#0a1d3d" },
+  AIQ: { body: W, belly: W, tail: "#e1001a", accent: "#e1001a", engine: "#e1001a" },
+  AXM: { body: W, belly: W, tail: "#e1001a", accent: "#e1001a", engine: "#e1001a" },
+  TGW: { body: W, belly: W, tail: "#f5d000", accent: "#1d1d1b", engine: "#f5d000" },
+  CSN: { body: W, belly: W, stripe: "#1d6fb8", tail: "#1d6fb8", accent: "#c8102e", engine: W },
+  CES: { body: W, belly: W, tail: "#16367c", accent: "#c8102e", engine: W },
+  FDX: { body: W, belly: W, stripe: "#4d148c", tail: "#4d148c", accent: "#ff6600", engine: "#4d148c" },
+  UPS: { body: "#4b2e1e", belly: "#4b2e1e", tail: "#4b2e1e", accent: "#ffb500", engine: "#4b2e1e" },
+  BOX: { body: W, belly: W, stripe: "#d7b200", tail: "#d7b200", accent: "#1d1d1b", engine: W },
+  BLX: { body: W, belly: "#1b4d9b", tail: "#1b4d9b", accent: "#ffcc00", engine: "#1b4d9b" },
+  CLX: { body: W, belly: W, stripe: "#c8102e", tail: "#c8102e", accent: "#5a6b7a", engine: W },
+};
+// Model geometry the paint needs: fuselage radius, fin split height, fin root x (metres, model space)
+const GEO = { narrow: [2.0, 4.6, -11.2], wide: [3.1, 7.2, -19.5], jumbo: [3.3, 8.0, -20], bizjet: [1.05, 2.6, -5.6], turboprop: [1.4, 3.6, -8.5], heli: [1.25, 1.6, -8.3] };
 const shaderCache = {};
-function planeShader(hex) {
-  hex = hex || "#1a4795";
-  if (!shaderCache[hex]) {
-    const c = C.Color.fromCssColorString(hex), lin = v => Math.pow(v, 2.2);
-    shaderCache[hex] = new C.CustomShader({
-      uniforms: { u_tail: { type: C.UniformType.VEC3, value: new C.Cartesian3(lin(c.red), lin(c.green), lin(c.blue)) } },
+function liveryOf(code, fallbackTail) {
+  return LIVERY[code] || { body: W, belly: W, tail: fallbackTail || "#1a4795", accent: fallbackTail || "#1a4795", engine: "#9ea5b0" };
+}
+// Repaints the model per airline, and keeps the plane softly lit on the night side
+function planeShader(airline, cls = "narrow") {
+  const code = airline ? airline.code : "", key = code + "|" + cls;
+  if (!shaderCache[key]) {
+    const L = liveryOf(code, airline && airline.color), g = GEO[cls] || GEO.narrow;
+    const v3 = hex => { const c = C.Color.fromCssColorString(hex), lin = v => Math.pow(v, 2.2); return { type: C.UniformType.VEC3, value: new C.Cartesian3(lin(c.red), lin(c.green), lin(c.blue)) }; };
+    shaderCache[key] = new C.CustomShader({
+      uniforms: {
+        u_body: v3(L.body), u_belly: v3(L.belly), u_stripe: v3(L.stripe || L.body), u_tail: v3(L.tail), u_accent: v3(L.accent || L.tail), u_engine: v3(L.engine),
+        u_geo: { type: C.UniformType.VEC4, value: new C.Cartesian4(g[0], g[1], g[2], L.stripe ? 1 : 0) },
+      },
+      // Model space is the glTF file's own: x = nose, y = up, z = right wing.
+      // material.diffuse is the base colour after metalness: body ~0.80, wings ~0.41, engines ~0.26.
       fragmentShaderText: `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
         vec3 d = material.diffuse;
-        if (d.b > d.r + 0.2 && d.b > d.g + 0.15) material.diffuse = u_tail;
+        vec3 p = fsInput.attributes.positionMC;
+        float R = u_geo.x, up = p.y;
+        float lum = (d.r + d.g + d.b) / 3.0;
+        if (d.b > d.r + 0.12 && d.b > d.g + 0.08) {               // fin, stabiliser tips, winglets
+          bool acc = up > u_geo.y + (p.x - u_geo.z) * 0.45;        // diagonal split on the fin
+          material.diffuse = acc ? u_accent : u_tail;
+          material.specular = vec3(0.04);
+        } else if (lum > 0.7) {                                    // fuselage
+          vec3 c = u_body;
+          if (up < -0.1 * R) c = u_belly;
+          else if (u_geo.w > 0.5 && up > -0.02 * R && up < 0.16 * R) c = u_stripe;
+          material.diffuse = c;
+        } else if (lum > 0.2 && lum < 0.32) {                      // engine nacelles: painted, matte
+          material.diffuse = u_engine * 0.95;
+          material.specular = vec3(0.05);
+        }
         material.emissive += material.diffuse * 0.32;
       }`,
     });
   }
-  return shaderCache[hex];
+  return shaderCache[key];
 }
 const haloCache = {};
 function halo(color) {
@@ -504,6 +582,7 @@ function applyModel(p) {
   if (m.cls === "turboprop") { nt.prop_l = new C.NodeTransformationProperty({ rotation: spin(C.Cartesian3.UNIT_X, 28) }); nt.prop_r = new C.NodeTransformationProperty({ rotation: spin(C.Cartesian3.UNIT_X, 28) }); }
   if (m.cls === "heli") { nt.rotor = new C.NodeTransformationProperty({ rotation: spin(C.Cartesian3.UNIT_Y, 20) }); nt.tailrotor = new C.NodeTransformationProperty({ rotation: spin(C.Cartesian3.UNIT_Z, 60) }); }
   p.ent.model.nodeTransformations = nt;
+  p.ent.model.customShader = planeShader(p.airline, m.cls);
   p.rare = rarity(p.q, m);
 }
 function labelText(p) { return (p.rare && p.rare.tier >= 2 && opt.rare ? "⭐ " : "") + (p.q.call || p.id.toUpperCase()); }
@@ -524,7 +603,7 @@ function addPlane(q, fix) {
       maximumScale: 3000,
       silhouetteColor: C.Color.WHITE.withAlpha(0.9),
       silhouetteSize: new C.CallbackProperty(() => selected === p.id && following !== p.id ? 2 : 0, false),
-      customShader: planeShader(p.airline && p.airline.color),
+      customShader: planeShader(p.airline, "narrow"),
     },
     billboard: {
       image: new C.CallbackProperty(() => halo(p.rare && p.rare.tier >= 2 && opt.rare ? GOLD : p.color), false),
@@ -619,7 +698,7 @@ function updatePlane(q, fix, now, smooth = true) {
   if (q.type !== prevType || q.cat !== prevCat) applyModel(p);
   if (q.call !== prevCall) {
     const a = airlineOf(q.call);
-    if (a && (!p.airline || p.airline.code !== a.code)) { p.airline = a; p.ent.model.customShader = planeShader(a.color); }
+    if (a && (!p.airline || p.airline.code !== a.code)) { p.airline = a; p.ent.model.customShader = planeShader(a, (p.model || {}).cls); }
     p.rare = rarity(q, p.model);
   }
   if (wasGround !== q.ground) { setGroundClamp(p); if (!q.ground) addTrail(p); p.ent.label.show = opt.labels && !q.ground; }
@@ -630,6 +709,10 @@ function updatePlane(q, fix, now, smooth = true) {
 function fixFrom(q, t) {
   const ft = q.geomFt != null ? q.geomFt : q.altFt;   // GPS height is closer to true height than pressure altitude
   const f = { lat: q.lat, lon: q.lon, alt: q.ground ? 0 : Math.max(0, (ft || 0) * 0.3048), v: (q.kts || 0) * 0.5144, trk: q.track || 0, vr: q.ground ? 0 : (q.vr || 0) * 0.00508, t, floor: 0 };
+  if (terrainOn && q.ground) {
+    const gh = globe.getHeight(C.Cartographic.fromDegrees(q.lon, q.lat));
+    f.alt = f.floor = (gh != null ? gh : nearestAirportElev(q.lat, q.lon)) + 2;
+  }
   if (terrainOn && !q.ground) {
     // keep airborne planes at least 25 m above the ground under them
     const gh = globe.getHeight(C.Cartographic.fromDegrees(q.lon, q.lat));
@@ -1072,7 +1155,7 @@ function startChase(id, o = {}) {
   const p = planes.get(id); if (!p) return;
   stopSky();
   following = id;
-  chase = { range: (o.range || chaseRange(p)) * (p.q.ground ? 0.8 : 1), pitch: C.Math.toRadians(-9), orbit: !!o.orbit, t0: Date.now() };
+  chase = { range: (o.range || chaseRange(p)) * (p.q.ground ? 1.6 : 1), pitch: C.Math.toRadians(p.q.ground ? -22 : -9), orbit: !!o.orbit, t0: Date.now() };
   const ahead = displayPos(p, Date.now() + 2500, new C.Cartesian3());
   viewer.camera.flyToBoundingSphere(new C.BoundingSphere(ahead, 40), {
     offset: new C.HeadingPitchRange(C.Math.toRadians(p.fix.trk), chase.pitch, chase.range),
@@ -1106,7 +1189,12 @@ scene.preRender.addEventListener(() => {
   const heading = cur.heading + C.Math.negativePiToPi(wantH - cur.heading) * 0.04;
   const pitch = Math.max(-1.45, Math.min(0.35, cur.pitch + (wantP - cur.pitch) * 0.05));
   range = Math.max(25, Math.min(5000, cur.range + (range - cur.range) * 0.05));
-  viewer.camera.lookAt(tgtScratch, new C.HeadingPitchRange(heading, pitch, range));
+  // keep the camera at least 15 m above the ground under the plane
+  const tc = C.Cartographic.fromCartesian(tgtScratch);
+  const gh = terrainOn ? (globe.getHeight(tc) ?? tc.height) : 0;
+  const maxPitch = -Math.asin(Math.max(-1, Math.min(1, (gh + 15 - tc.height) / range)));
+  const safePitch = Math.min(pitch, maxPitch);
+  viewer.camera.lookAt(tgtScratch, new C.HeadingPitchRange(heading, safePitch, range));
   chase.last = C.Cartesian3.clone(tgtScratch, chase.last);
 });
 $("cFly").onclick = () => { stopCine(); following === selected ? unfollow() : startChase(selected); };
