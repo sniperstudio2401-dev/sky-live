@@ -238,7 +238,7 @@
 <script>
 // ═════════════════ settings ═════════════════
 const RELAY = "https://sky-relay.vaibhav-linchon.workers.dev";
-const REFRESH_MS = 8000;
+const REFRESH_MS = 10000;
 const RANGES = [{ nm: 80, km: 150 }, { nm: 150, km: 280 }, { nm: 250, km: 460 }];
 const QUICK = [
   { name: "Bengaluru", country: "India", cc: "IN", lat: 12.97, lon: 77.59 },
@@ -660,7 +660,7 @@ async function poll() {
     const r = await fetch(`${RELAY}/?lat=${place.lat.toFixed(2)}&lon=${place.lon.toFixed(2)}&dist=${RANGES[rangeIdx].nm}`);
     const data = await r.json();
     if (data.planes) { applyData(data); lastProblem = ""; }
-    else lastProblem = "Feeds busy" + (data.errors ? " (" + data.errors.map(x => x.split(":")[0] + " " + (x.match(/HTTP \d+|timed out|failed/) || [""])[0]).join(", ") + ")" : "") + " · retrying";
+    else lastProblem = "Feeds busy" + (data.errors ? " (" + data.errors.map(x => x.split(":")[0] + " " + (x.match(/HTTP \d+|timed out|failed|resting/) || [""])[0]).join(", ") + ")" : "") + " · retrying";
   } catch (e) { lastProblem = "Can't reach your relay · retrying"; }
   fetching = false;
   updateStatus();
