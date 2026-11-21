@@ -120,6 +120,39 @@
   #recbadge{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:6px 12px;display:none;align-items:center;gap:8px;font-weight:700;z-index:9}
   #recbadge.on{display:flex}
   #recbadge i{width:10px;height:10px;border-radius:50%;background:#ef4444;animation:pulse 1s infinite}
+  .btn.on{background:rgba(56,189,248,.35);border-color:rgba(56,189,248,.7)}
+  .row3{display:flex;gap:8px;margin-bottom:6px}
+  .row3 .btn{font-size:13px;padding:8px 6px}
+  /* point-at-the-sky */
+  #ar{position:fixed;inset:0;z-index:30;background:linear-gradient(#0b1a33,#1c3a63 60%,#2b4a6b);display:none;touch-action:none}
+  #ar.on{display:block}
+  #arVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #arCanvas{position:absolute;inset:0;width:100%;height:100%}
+  #arTop{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:8px;align-items:flex-start}
+  #arTop .glass{padding:8px 12px}
+  #arMsg{flex:1;font-size:12px;color:#dbeafe}
+  #arMsg b{color:#fff}
+  #arClose{border:1px solid var(--line);background:var(--glass);border-radius:12px;width:44px;height:44px;font-size:22px;cursor:pointer}
+  #arCal{position:absolute;left:10px;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));padding:10px 12px;font-size:12px;display:none}
+  #arCal.on{display:block}
+  #arCal label{display:flex;align-items:center;gap:8px;margin:4px 0}
+  #arCal input{flex:1;accent-color:var(--acc)}
+  #arCalBtn{position:absolute;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));border:1px solid var(--line);background:var(--glass);border-radius:12px;padding:9px 12px;cursor:pointer}
+  /* stats bars */
+  .bars div{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px}
+  .bars span{width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cbd5e1}
+  .bars i{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--acc),#a78bfa);display:block}
+  .bars em{font-style:normal;color:var(--mut);margin-left:auto}
+  .hours{display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:6px}
+  .hours i{flex:1;background:linear-gradient(0deg,var(--acc),#a78bfa);border-radius:2px 2px 0 0;min-height:2px}
+  .hlab{display:flex;justify-content:space-between;color:var(--mut);font-size:10px}
+  .big{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+  .big div{background:rgba(255,255,255,.05);border-radius:10px;padding:8px;text-align:center}
+  .big b{display:block;font-size:20px}
+  .big span{color:var(--mut);font-size:11px}
+  .pass{padding:8px;border-radius:10px;background:rgba(255,255,255,.04);margin:5px 0;font-size:13px}
+  .pass.vis{background:rgba(252,211,77,.12);border:1px solid rgba(252,211,77,.35)}
+  .pass small{display:block;color:var(--mut)}
   #loading{position:fixed;inset:0;display:grid;place-items:center;background:#05080f;color:var(--mut);transition:opacity .8s;z-index:20}
   #loading.gone{opacity:0;pointer-events:none}
   .cesium-viewer-bottom{transform:scale(.8);transform-origin:left bottom;opacity:.7}
@@ -138,9 +171,10 @@
   <button id="bHome" title="Back to my place">⌂</button>
   <button id="bRange" title="Range"><small id="rangeTxt">280km</small></button>
   <button id="bFind" title="Search and filters">🔍</button>
-  <button id="bRewind" title="Rewind">⏪</button>
+  <button id="bFlights" title="Track my flight">✈</button>
   <button id="bCine" title="Cinematic tour">🎬</button>
-  <button id="bSky" title="Look up from your city">🔭</button>
+  <button id="bAR" title="Point at the sky (phone camera)">📱</button>
+  <button id="bSpace" title="Space layer: ISS and satellites">🛰</button>
   <button id="bRec" title="Record a Short (9:16 video)">⏺</button>
   <button id="bMenu" title="More options">☰</button>
 </div>
@@ -193,6 +227,7 @@
 <!-- settings -->
 <div id="menuSheet" class="sheet glass">
   <h3>Options <button class="x" data-close="menuSheet">×</button></h3>
+  <div class="row3"><button class="btn" id="bRewind">⏪ Rewind</button><button class="btn" id="bSky">🔭 Sky view</button><button class="btn" id="bStats">📊 Sky stats</button></div>
   <div id="toggles"></div>
   <div class="sec">3D terrain &amp; buildings</div>
   <input class="inp" id="ionKey" placeholder="Paste your free Cesium ion key" autocomplete="off">
@@ -209,6 +244,45 @@
   <div class="tabs chips" id="bTabs"><button class="chip on" data-v="arr">Arrivals</button><button class="chip" data-v="dep">Departures</button><button class="chip" data-v="gnd">On ground</button></div>
   <div id="bList"></div>
   <div class="note">Based on live positions and known routes for planes within range.</div>
+</div>
+
+<!-- track my flight -->
+<div id="flightsSheet" class="sheet glass">
+  <h3>✈ Track my flight <button class="x" data-close="flightsSheet">×</button></h3>
+  <div style="display:flex;gap:8px"><input class="inp" id="flIn" placeholder="Flight number, e.g. 6E 501 or AI 101" autocomplete="off"><button class="btn" id="flAdd" style="flex:none;padding:9px 14px">Track</button></div>
+  <div id="flList"></div>
+  <div class="note">Works while the flight is in the air and seen by the free ADS-B network. You get a pop-up (and a notification, if allowed) when it lands. Some airlines use a different callsign from the flight number; you can also type the callsign shown on a plane's label.</div>
+</div>
+
+<!-- space layer -->
+<div id="spaceSheet" class="sheet glass">
+  <h3>🛰 Space <button class="x" data-close="spaceSheet">×</button></h3>
+  <div id="spToggles"></div>
+  <div class="row3" style="margin-top:8px"><button class="btn" id="spView">🌍 Space view</button><button class="btn" id="spIss">Show the ISS</button></div>
+  <div class="sec">ISS passes over <span id="spPlace"></span></div>
+  <div id="spPasses" class="note">Loading orbits…</div>
+  <div class="note">“Visible” passes happen when it's dark where you are but the ISS is still in sunlight: look for a bright, steady star gliding across the sky.</div>
+</div>
+
+<!-- sky stats -->
+<div id="statsSheet" class="sheet glass">
+  <h3>📊 Sky stats <button class="x" data-close="statsSheet">×</button></h3>
+  <div class="tabs chips" id="stTabs"><button class="chip on" data-v="1">Today</button><button class="chip" data-v="7">Last 7 days</button></div>
+  <div id="stBody"></div>
+  <div class="note">Counted while Sky Live is open on this device.</div>
+</div>
+
+<!-- point at the sky -->
+<div id="ar">
+  <video id="arVideo" playsinline muted autoplay></video>
+  <canvas id="arCanvas"></canvas>
+  <div id="arTop"><div id="arMsg" class="glass">Starting camera and compass…</div><button id="arClose">×</button></div>
+  <button id="arCalBtn">🧭 Calibrate</button>
+  <div id="arCal" class="glass">
+    <label>Compass <input type="range" id="arOff" min="-60" max="60" value="0"><b id="arOffV">0°</b></label>
+    <label>Zoom <input type="range" id="arFov" min="35" max="100" value="62"><b id="arFovV">62°</b></label>
+    <div class="note">Point at a plane you can actually see. If its label is off to the side, slide Compass. If labels look too spread out or bunched together, slide Zoom. <a href="#" id="arCalDone">Done</a></div>
+  </div>
 </div>
 
 <!-- rewind -->
@@ -235,6 +309,7 @@
 
 <script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/";</script>
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Cesium.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js"></script>
 <script>
 // ═════════════════ settings ═════════════════
 const RELAY = "https://sky-relay.vaibhav-linchon.workers.dev";
@@ -627,6 +702,7 @@ function addPlane(q, fix) {
   p.ent.label.text = labelText(p);
   setGroundClamp(p);
   if (!q.ground) addTrail(p);
+  p.seenAt = Date.now();
   planes.set(q.id, p);
   noticeRare(p);
   return p;
@@ -680,6 +756,7 @@ setInterval(() => {
 // Update one plane from a data record. smooth=false snaps (used by rewind).
 function updatePlane(q, fix, now, smooth = true) {
   let p = planes.get(q.id);
+  if (p) p.seenAt = Date.now();
   if (!p) { p = addPlane(q, fix); if (!smooth) p.fixAt = -1e12; return p; }
   const dtFix = (fix.t - p.fix.t) / 1000;
   if (smooth && dtFix > 1) {
@@ -744,8 +821,9 @@ function applyData(data) {
     seen.add(q.id);
     updatePlane(q, fixFrom(q, Math.min(lastDataTime, now)), now);
   }
-  for (const p of [...planes.values()]) if (!seen.has(p.id) && ++p.miss >= 3) removePlane(p);
+  for (const p of [...planes.values()]) if (!seen.has(p.id) && !p.tracked && ++p.miss >= 3) removePlane(p);
   requestRoutes();
+  recordStats(data.planes);
 }
 async function poll() {
   if (fetching || document.hidden) return;
@@ -972,7 +1050,7 @@ $("fReset").onclick = () => {
 };
 
 // ═════════════════ sheets & toasts ═════════════════
-function closeSheets() { document.querySelectorAll(".sheet").forEach(s => s.classList.remove("on")); $("bFind").classList.remove("on"); $("bMenu").classList.remove("on"); }
+function closeSheets() { document.querySelectorAll(".sheet").forEach(s => s.classList.remove("on")); ["bFind", "bMenu", "bFlights"].forEach(b => $(b).classList.remove("on")); $("bSpace").classList.toggle("on", !!(window.SPACE && SPACE.on)); }
 function openSheet(id) { const was = $(id).classList.contains("on"); closeSheets(); if (!was) $(id).classList.add("on"); return !was; }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeSheets());
 $("bFind").onclick = () => { if (openSheet("findSheet")) { $("bFind").classList.add("on"); fillAirlineChips(); applyFilters(); } };
@@ -1087,6 +1165,7 @@ function setPlace(p, fly = true) {
   drawAirports();
   if (fly) flyHome();
   poll();
+  if (window.SPACE && SPACE.on) computePasses();
 }
 function selectAndShow(id) {
   const p = planes.get(id); if (!p) return;
@@ -1448,6 +1527,486 @@ scene.postRender.addEventListener(drawFrame);
 $("bRec").onclick = () => rec ? stopRecording() : startRecording();
 $("recStop").onclick = stopRecording;
 $("cRec").onclick = () => { if (!rec) { if (following !== selected) startChase(selected); setTimeout(startRecording, 2600); } else stopRecording(); };
+
+// ═════════════════ point at the sky (phone camera + compass) ═════════════════
+const AR = { on: false, stream: null, raw: null, gotAbs: false, watch: null, pos: null, raf: 0, manual: null,
+  off: load("sky.arOff", 0), fov: load("sky.arFov", 62), vec: null, labels: [] };
+const v3 = (x, y, z) => ({ x, y, z });
+const dot3 = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+const norm3 = a => { const l = Math.hypot(a.x, a.y, a.z) || 1; return v3(a.x / l, a.y / l, a.z / l); };
+const lerp3 = (a, b, k) => v3(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k);
+const cross3 = (a, b) => v3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+function arMsg(html) { $("arMsg").innerHTML = html; }
+function onOri(e) {
+  if (e.type === "deviceorientation" && AR.gotAbs && e.webkitCompassHeading == null) return;
+  let a = e.alpha;
+  if (e.webkitCompassHeading != null) { a = 360 - e.webkitCompassHeading; AR.gotAbs = true; }   // iPhone: true compass heading
+  else if (e.type === "deviceorientationabsolute" || e.absolute) AR.gotAbs = true;
+  if (a == null || e.beta == null) return;
+  AR.raw = { a, b: e.beta, g: e.gamma || 0, t: Date.now() };
+}
+// Camera axes in east/north/up from the phone's orientation (W3C rotation matrix, Z-X'-Y'')
+function cameraAxes() {
+  if (AR.manual) {
+    const h = C.Math.toRadians(AR.manual.h), p = C.Math.toRadians(AR.manual.p);
+    const fwd = v3(Math.sin(h) * Math.cos(p), Math.cos(h) * Math.cos(p), Math.sin(p));
+    const right = norm3(v3(Math.cos(h), -Math.sin(h), 0));
+    return { fwd, right, up: cross3(right, fwd) };
+  }
+  if (!AR.raw) return null;
+  const d = Math.PI / 180, A = (AR.raw.a + AR.off) * d, B = AR.raw.b * d, G = AR.raw.g * d;
+  const cA = Math.cos(A), sA = Math.sin(A), cB = Math.cos(B), sB = Math.sin(B), cG = Math.cos(G), sG = Math.sin(G);
+  const right = v3(cA * cG - sA * sB * sG, cG * sA + cA * sB * sG, -cB * sG);
+  const up = v3(-cB * sA, cA * cB, sB);
+  const fwd = v3(-(cA * sG + cG * sA * sB), -(sA * sG - cA * cG * sB), -(cB * cG));   // rear camera looks out of the back
+  return { fwd, right, up };
+}
+async function startAR() {
+  closeSheets(); stopCine(); unfollow(); closeCard();
+  AR.on = true; AR.manual = null; AR.raw = null; AR.gotAbs = false;
+  $("ar").classList.add("on"); $("bAR").classList.add("on");
+  $("arOff").value = AR.off; $("arOffV").textContent = AR.off + "°"; $("arFov").value = AR.fov; $("arFovV").textContent = AR.fov + "°";
+  try { if (typeof DeviceOrientationEvent !== "undefined" && DeviceOrientationEvent.requestPermission) await DeviceOrientationEvent.requestPermission(); } catch (e) {}
+  window.addEventListener("deviceorientationabsolute", onOri, true);
+  window.addEventListener("deviceorientation", onOri, true);
+  try {
+    AR.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+    $("arVideo").srcObject = AR.stream; await $("arVideo").play();
+  } catch (e) { $("arVideo").srcObject = null; }
+  if (navigator.geolocation) AR.watch = navigator.geolocation.watchPosition(p => { AR.pos = { lat: p.coords.latitude, lon: p.coords.longitude, h: p.coords.altitude }; }, () => {}, { enableHighAccuracy: true, maximumAge: 10000 });
+  // no motion sensors after a moment (laptop): drag to look around instead
+  setTimeout(() => { if (AR.on && !AR.raw) { AR.manual = { h: 0, p: 15 }; } }, 1500);
+  cancelAnimationFrame(AR.raf); AR.raf = requestAnimationFrame(arLoop);
+}
+function stopAR() {
+  AR.on = false; $("ar").classList.remove("on"); $("bAR").classList.remove("on");
+  window.removeEventListener("deviceorientationabsolute", onOri, true);
+  window.removeEventListener("deviceorientation", onOri, true);
+  if (AR.stream) AR.stream.getTracks().forEach(t => t.stop()); AR.stream = null;
+  if (AR.watch != null) navigator.geolocation.clearWatch(AR.watch); AR.watch = null;
+  cancelAnimationFrame(AR.raf);
+}
+let arDrag = null;
+$("arCanvas").addEventListener("pointerdown", e => {
+  const hit = AR.labels.find(l => e.offsetX >= l.x && e.offsetX <= l.x + l.w && e.offsetY >= l.y && e.offsetY <= l.y + l.h);
+  if (hit) { AR.sel = AR.sel === hit.id ? null : hit.id; return; }
+  if (AR.manual) arDrag = { x: e.clientX, y: e.clientY, h: AR.manual.h, p: AR.manual.p };
+});
+window.addEventListener("pointermove", e => { if (arDrag && AR.manual) { AR.manual.h = (arDrag.h - (e.clientX - arDrag.x) * 0.15 + 360) % 360; AR.manual.p = Math.max(-10, Math.min(85, arDrag.p + (e.clientY - arDrag.y) * 0.15)); } });
+window.addEventListener("pointerup", () => { arDrag = null; });
+function arObserver() {
+  if (AR.pos) return AR.pos;
+  return { lat: place.lat, lon: place.lon, h: null };
+}
+function arLoop() {
+  if (!AR.on) return;
+  AR.raf = requestAnimationFrame(arLoop);
+  const cv = $("arCanvas"), dpr = Math.min(window.devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const ax = cameraAxes();
+  const obs = arObserver();
+  const landscape = W > H;
+  if (!ax) { arMsg("Waiting for the compass… If nothing happens, this device may not have motion sensors."); return; }
+  // smooth the jittery sensors
+  AR.vec = AR.vec ? { fwd: norm3(lerp3(AR.vec.fwd, ax.fwd, 0.2)), right: norm3(lerp3(AR.vec.right, ax.right, 0.2)), up: norm3(lerp3(AR.vec.up, ax.up, 0.2)) } : ax;
+  let { fwd, right, up } = AR.vec;
+  if (landscape && !AR.manual) { // phone turned sideways: screen axes swap
+    const ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+    const r2 = v3(right.x * Math.cos(ang) + up.x * Math.sin(ang), right.y * Math.cos(ang) + up.y * Math.sin(ang), right.z * Math.cos(ang) + up.z * Math.sin(ang));
+    const u2 = v3(-right.x * Math.sin(ang) + up.x * Math.cos(ang), -right.y * Math.sin(ang) + up.y * Math.cos(ang), -right.z * Math.sin(ang) + up.z * Math.cos(ang));
+    right = r2; up = u2;
+  }
+  const vfov = C.Math.toRadians(landscape ? AR.fov * 0.62 : AR.fov), f = (H / 2) / Math.tan(vfov / 2);
+  // compass strip along the top
+  const heading = (Math.atan2(fwd.x, fwd.y) * 180 / Math.PI + 360) % 360, elev = Math.asin(Math.max(-1, Math.min(1, fwd.z))) * 180 / Math.PI;
+  ctx.fillStyle = "rgba(5,8,15,.45)"; ctx.fillRect(0, 70, W, 26);
+  ctx.font = "600 12px system-ui"; ctx.textAlign = "center";
+  for (let d = 0; d < 360; d += 15) {
+    const off = ((d - heading + 540) % 360) - 180;
+    const x = W / 2 + Math.tan(C.Math.toRadians(off)) * f;
+    if (Math.abs(off) > 70 || x < 0 || x > W) continue;
+    const lab = d % 90 === 0 ? ["N", "E", "S", "W"][d / 90] : d % 45 === 0 ? ["NE", "SE", "SW", "NW"][(d - 45) / 90] : "";
+    ctx.fillStyle = lab ? "#fff" : "rgba(255,255,255,.5)";
+    if (lab) ctx.fillText(lab, x, 88); else ctx.fillRect(x - 0.5, 80, 1, 8);
+  }
+  ctx.fillStyle = "#fbbf24"; ctx.beginPath(); ctx.moveTo(W / 2 - 6, 70); ctx.lineTo(W / 2 + 6, 70); ctx.lineTo(W / 2, 77); ctx.fill();
+  // horizon line
+  const hz = [];
+  for (let i = -1; i <= 1; i += 2) { const dir = norm3(v3(Math.sin(C.Math.toRadians(heading + i * 30)), Math.cos(C.Math.toRadians(heading + i * 30)), 0)); const zc = dot3(dir, fwd); if (zc > 0.05) hz.push([W / 2 + dot3(dir, right) / zc * f, H / 2 - dot3(dir, up) / zc * f]); }
+  if (hz.length === 2) { ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(hz[0][0], hz[0][1]); ctx.lineTo(hz[1][0], hz[1][1]); ctx.stroke(); ctx.setLineDash([]); }
+  // planes
+  const gh = obs.h != null ? obs.h : (terrainOn ? (globe.getHeight(C.Cartographic.fromDegrees(obs.lon, obs.lat)) || 0) : nearestAirportElev(obs.lat, obs.lon));
+  const eye = C.Cartesian3.fromDegrees(obs.lon, obs.lat, gh + 1.6);
+  const inv = C.Matrix4.inverseTransformation(C.Transforms.eastNorthUpToFixedFrame(eye), new C.Matrix4());
+  const items = [];
+  for (const p of planes.values()) {
+    if (!visible(p)) continue;
+    const l = C.Matrix4.multiplyByPoint(inv, p.pos, new C.Cartesian3()), dist = C.Cartesian3.magnitude(l);
+    if (dist > 90000 || (p.q.ground && dist > 6000)) continue;
+    const dir = v3(l.x / dist, l.y / dist, l.z / dist);
+    const zc = dot3(dir, fwd), xc = dot3(dir, right), yc = dot3(dir, up);
+    items.push({ p, dist, zc, xc, yc, el: Math.asin(dir.z) * 180 / Math.PI });
+  }
+  items.sort((a, b) => b.dist - a.dist);
+  AR.labels = [];
+  let onScreen = 0;
+  const placed = [];
+  for (const it of items) {
+    const p = it.p, col = p.rare && p.rare.tier >= 2 && opt.rare ? GOLD : p.color;
+    if (it.zc > 0.08) {
+      const sx = W / 2 + it.xc / it.zc * f, sy = H / 2 - it.yc / it.zc * f;
+      if (sx < -40 || sx > W + 40 || sy < 60 || sy > H + 40) { edgeArrow(ctx, W, H, it.xc, it.yc, col); continue; }
+      onScreen++;
+      const r = Math.max(6, Math.min(18, 9000 / it.dist * 6));
+      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(sx, sy, 2.5, 0, Math.PI * 2); ctx.fill();
+      // label box, nudged up to avoid overlaps
+      const leg = legOf(p), sel = AR.sel === p.id;
+      const lines = [
+        [(p.q.call || p.id.toUpperCase()), "800 16px system-ui", "#fff"],
+        [[p.airline && p.airline.name, p.q.type].filter(Boolean).join(" · ") || (p.rare ? p.rare.label : "Aircraft"), "600 12px system-ui", "#cbd5e1"],
+        [`${p.q.ground ? "on ground" : (p.q.altFt || 0).toLocaleString() + " ft"} · ${(it.dist / 1000).toFixed(1)} km away`, "500 12px system-ui", "#cbd5e1"],
+      ];
+      if (leg) lines.push([`${leg.from.iata || leg.from.icao} → ${leg.to.iata || leg.to.icao}${sel ? " · " + (leg.to.city || "") : ""}`, "700 12px system-ui", "#7dd3fc"]);
+      if (sel) lines.push([`${Math.round((p.q.kts || 0) * 1.852)} km/h · heading ${compass(p.q.track)} · ${Math.round(it.el)}° up`, "500 12px system-ui", "#cbd5e1"]);
+      let w = 0; for (const [t, fnt] of lines) { ctx.font = fnt; w = Math.max(w, ctx.measureText(t).width); }
+      w += 18; const h = 10 + lines.length * 17;
+      let bx = Math.max(6, Math.min(W - w - 6, sx + r + 8)), by = sy - h / 2;
+      for (let tries = 0; tries < 6 && placed.some(b => bx < b.x + b.w && bx + w > b.x && by < b.y + b.h && by + h > b.y); tries++) by -= h * 0.6;
+      placed.push({ x: bx, y: by, w, h });
+      ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx + r, sy); ctx.lineTo(bx, by + h / 2); ctx.stroke();
+      ctx.fillStyle = sel ? "rgba(10,16,30,.92)" : "rgba(10,16,30,.72)"; roundRect(ctx, bx, by, w, h, 10); ctx.fill();
+      ctx.fillStyle = col; ctx.fillRect(bx, by + 8, 3, h - 16);
+      ctx.textAlign = "left";
+      lines.forEach(([t, fnt, c], i) => { ctx.font = fnt; ctx.fillStyle = c; ctx.fillText(t, bx + 11, by + 20 + i * 17); });
+      AR.labels.push({ id: p.id, x: bx, y: by, w, h });
+    } else edgeArrow(ctx, W, H, it.xc, it.yc, col);
+  }
+  const where = AR.pos ? "your GPS position" : place.name;
+  const far = AR.pos && gcDist(AR.pos, place) > 60000 ? ` · <b>You're far from ${esc(place.name)}</b>: set your place to “My location”.` : "";
+  arMsg(AR.manual ? `<b>No compass on this device.</b> Drag to look around. Looking ${compass(heading)}, ${Math.round(elev)}° up · ${items.length} planes nearby`
+    : `${AR.gotAbs ? "" : "<b>Compass not confirmed</b>, use Calibrate if labels are off. "}Looking <b>${compass(heading)} ${Math.round(heading)}°</b>, ${Math.round(elev)}° up · ${onScreen} in view, ${items.length} within 90 km of ${esc(where)}${far}`);
+}
+function gcDist(a, b) { return gc({ lat: a.lat, lon: a.lon }, { lat: b.lat, lon: b.lon }); }
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function edgeArrow(ctx, W, H, xc, yc, col) {
+  const a = Math.atan2(-yc, xc), cx = W / 2, cy = H / 2 + 20, R = Math.min(W, H) / 2 - 26;
+  const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.fillStyle = col; ctx.globalAlpha = 0.75;
+  ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-6, -7); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+$("bAR").onclick = () => AR.on ? stopAR() : startAR();
+$("arClose").onclick = stopAR;
+$("arCalBtn").onclick = () => $("arCal").classList.toggle("on");
+$("arCalDone").onclick = e => { e.preventDefault(); $("arCal").classList.remove("on"); };
+$("arOff").oninput = () => { AR.off = +$("arOff").value; $("arOffV").textContent = AR.off + "°"; save("sky.arOff", AR.off); };
+$("arFov").oninput = () => { AR.fov = +$("arFov").value; $("arFovV").textContent = AR.fov + "°"; save("sky.arFov", AR.fov); };
+
+// ═════════════════ space layer ═════════════════
+const SP = Object.assign({ layer: true, stations: true, visual: true, starlink: false, alerts: true }, load("sky.space", {}));
+var SPACE = { on: false, sats: [], points: null, labels: null, iss: null, orbitEnt: null, passes: [], alerted: new Set(), loading: {}, timer: null };
+const GROUP_STYLE = { stations: { color: "#fcd34d", size: 9 }, visual: { color: "#f8fafc", size: 5 }, starlink: { color: "#93c5fd", size: 2.5 } };
+const issIcon = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='96' height='64'><g fill='#1e3a8a' stroke='#fcd34d' stroke-width='1.5'><rect x='4' y='8' width='22' height='48'/><rect x='70' y='8' width='22' height='48'/></g><rect x='26' y='29' width='44' height='6' fill='#e5e7eb'/><rect x='40' y='22' width='16' height='20' rx='3' fill='#f8fafc' stroke='#fcd34d'/></svg>`);
+async function loadGroup(group) {
+  if (SPACE.loading[group]) return SPACE.loading[group];
+  SPACE.loading[group] = (async () => {
+    let text = "";
+    try { const r = await fetch(`${RELAY}/tle?group=${group}`); if (r.ok) text = await r.text(); } catch (e) {}
+    if (!/^1 /m.test(text)) { try { const r = await fetch(`https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=tle`); if (r.ok) text = await r.text(); } catch (e) {} }
+    const lines = text.split(/\r?\n/).map(l => l.trimEnd()).filter(Boolean), out = [];
+    for (let i = 0; i + 2 < lines.length + 1; i++) {
+      if (lines[i + 1] && lines[i + 1].startsWith("1 ") && lines[i + 2] && lines[i + 2].startsWith("2 ")) {
+        try { out.push({ name: lines[i].trim(), rec: satellite.twoline2satrec(lines[i + 1], lines[i + 2]), group }); } catch (e) {}
+        i += 2;
+      }
+    }
+    return out;
+  })();
+  return SPACE.loading[group];
+}
+async function applySpace() {
+  const want = SPACE.on ? Object.keys(GROUP_STYLE).filter(g => SP[g]) : [];
+  if (!SPACE.points) { SPACE.points = scene.primitives.add(new C.PointPrimitiveCollection()); SPACE.labels = scene.primitives.add(new C.LabelCollection()); }
+  SPACE.points.removeAll(); SPACE.labels.removeAll();
+  if (SPACE.iss) { viewer.entities.remove(SPACE.iss); SPACE.iss = null; }
+  if (SPACE.orbitEnt) { viewer.entities.remove(SPACE.orbitEnt); SPACE.orbitEnt = null; }
+  SPACE.sats = []; SPACE.issRec = null; SPACE.issPos = null;
+  if (!want.length) { computePasses(); return; }
+  const all = [];
+  for (const g of want) all.push(...await loadGroup(g));
+  if (!SPACE.on) return;
+  const seen = new Set();
+  for (const s of all) {
+    if (seen.has(s.name)) continue; seen.add(s.name);
+    const st = GROUP_STYLE[s.group], isIss = /ISS \(ZARYA\)/.test(s.name);
+    s.point = SPACE.points.add({ pixelSize: st.size, color: C.Color.fromCssColorString(st.color), outlineColor: C.Color.BLACK.withAlpha(0.5), outlineWidth: s.group === "starlink" ? 0 : 1, show: false });
+    if (s.group !== "starlink" && !isIss) s.label = SPACE.labels.add({ text: s.name.replace(/\s*\(.*\)/, ""), font: "600 11px system-ui", fillColor: C.Color.fromCssColorString(st.color), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -12), distanceDisplayCondition: new C.DistanceDisplayCondition(0, s.group === "stations" ? 2.5e7 : 6e6), show: false });
+    if (isIss) SPACE.issRec = s.rec;
+    SPACE.sats.push(s);
+  }
+  if (SPACE.issRec) {
+    SPACE.issPos = new C.Cartesian3();
+    SPACE.iss = viewer.entities.add({ id: "space#iss", position: new C.CallbackProperty(() => SPACE.issPos, false),
+      billboard: { image: issIcon, scale: 0.55, disableDepthTestDistance: 0 },
+      label: { text: "ISS", font: "800 14px system-ui", fillColor: C.Color.fromCssColorString("#fcd34d"), outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -26) } });
+    SPACE.orbit = [];
+    SPACE.orbitEnt = viewer.entities.add({ id: "space#orbit", polyline: { positions: new C.CallbackProperty(() => SPACE.orbit, false), width: 4, material: new C.PolylineGlowMaterialProperty({ glowPower: 0.2, color: C.Color.fromCssColorString("#fcd34d").withAlpha(0.7) }) } });
+  }
+  updateSats(true); computePasses();
+}
+function satPos(rec, date, result) {
+  const pv = satellite.propagate(rec, date); if (!pv || !pv.position) return null;
+  const gd = satellite.eciToGeodetic(pv.position, satellite.gstime(date));
+  return C.Cartesian3.fromRadians(gd.longitude, gd.latitude, gd.height * 1000, undefined, result);
+}
+let satTick = 0;
+function updateSats(all) {
+  if (!SPACE.on || !SPACE.sats.length) return;
+  const now = new Date(); satTick++;
+  for (const s of SPACE.sats) {
+    if (s.group === "starlink" && !all && satTick % 4) continue;      // Starlink is heavy: update it less often
+    const pos = satPos(s.rec, now, s.point.position && C.Cartesian3.clone(s.point.position));
+    if (!pos) { s.point.show = false; if (s.label) s.label.show = false; continue; }
+    s.point.position = pos; s.point.show = true;
+    if (s.label) { s.label.position = pos; s.label.show = true; }
+  }
+  if (SPACE.issRec) {
+    satPos(SPACE.issRec, now, SPACE.issPos);
+    if (all || satTick % 30 === 0) { // the next ~1.5 orbits
+      const pts = []; for (let m = 0; m <= 140; m += 2) { const p = satPos(SPACE.issRec, new Date(now.getTime() + m * 60000)); if (p) pts.push(p); }
+      SPACE.orbit = pts;
+    }
+  }
+}
+setInterval(() => updateSats(false), 1000);
+// Sun direction (Earth-fixed) for "is it dark here / is the ISS lit"
+function sunDirFixed(date) {
+  const jd = C.JulianDate.fromDate(date);
+  const sunI = C.Simon1994PlanetaryPositions.computeSunPositionInEarthInertialFrame(jd);
+  const m = C.Transforms.computeTemeToPseudoFixedMatrix(jd);
+  return C.Cartesian3.normalize(C.Matrix3.multiplyByVector(m, sunI, new C.Cartesian3()), new C.Cartesian3());
+}
+function computePasses() {
+  if (!SPACE.issRec) { $("spPasses").textContent = SPACE.on ? "Couldn't load the ISS orbit right now." : "Turn on the space layer to see passes."; return; }
+  const obs = { longitude: C.Math.toRadians(place.lon), latitude: C.Math.toRadians(place.lat), height: 0.9 };
+  const here = C.Cartesian3.fromDegrees(place.lon, place.lat, 0), upv = C.Cartesian3.normalize(here, new C.Cartesian3());
+  const passes = []; let cur = null; const start = Date.now();
+  for (let t = 0; t <= 48 * 3600; t += 30) {
+    const date = new Date(start + t * 1000), pv = satellite.propagate(SPACE.issRec, date);
+    if (!pv || !pv.position) continue;
+    const gmst = satellite.gstime(date), ecf = satellite.eciToEcf(pv.position, gmst), la = satellite.ecfToLookAngles(obs, ecf);
+    const el = la.elevation * 180 / Math.PI, az = (la.azimuth * 180 / Math.PI + 360) % 360;
+    if (el > 10) {
+      if (!cur) cur = { start: date, startAz: az, maxEl: el, maxAt: date, maxEcf: ecf };
+      if (el > cur.maxEl) { cur.maxEl = el; cur.maxAt = date; cur.maxEcf = ecf; }
+      cur.end = date; cur.endAz = az;
+    } else if (cur) { passes.push(cur); cur = null; if (passes.length >= 8) break; }
+  }
+  for (const p of passes) {
+    const sun = sunDirFixed(p.maxAt);
+    const sunEl = Math.asin(C.Cartesian3.dot(sun, upv)) * 180 / Math.PI;
+    const r = new C.Cartesian3(p.maxEcf.x * 1000, p.maxEcf.y * 1000, p.maxEcf.z * 1000), along = C.Cartesian3.dot(r, sun);
+    const lit = along > 0 || Math.sqrt(Math.max(0, C.Cartesian3.magnitudeSquared(r) - along * along)) > 6371000;
+    p.visible = sunEl < -6 && lit;
+    p.mins = Math.max(1, Math.round((p.end - p.start) / 60000));
+  }
+  SPACE.passes = passes;
+  $("spPlace").textContent = place.name;
+  const fmt = d => d.toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  $("spPasses").innerHTML = passes.length ? passes.slice(0, 6).map(p => `<div class="pass ${p.visible ? "vis" : ""}">${p.visible ? "👀 <b>Visible</b> · " : ""}${fmt(p.start)} · ${p.mins} min · up to ${Math.round(p.maxEl)}°<small>from ${compass(p.startAz)} to ${compass(p.endAz)}${p.visible ? "" : " · in daylight or Earth's shadow, so hard to see"}</small></div>`).join("")
+    : "No ISS passes above 10° in the next 2 days.";
+}
+setInterval(() => { if (SPACE.on && SPACE.issRec && Date.now() % (30 * 60000) < 60000) computePasses(); }, 60000);
+// heads-up 5 minutes before a visible pass
+setInterval(() => {
+  if (!SP.alerts || !SPACE.passes.length) return;
+  for (const p of SPACE.passes) {
+    const mins = (p.start - Date.now()) / 60000, key = p.start.getTime();
+    if (p.visible && mins > 0 && mins <= 5 && !SPACE.alerted.has(key)) {
+      SPACE.alerted.add(key);
+      const msg = `The ISS rises in the ${compass(p.startAz)} in ${Math.ceil(mins)} min, climbs to ${Math.round(p.maxEl)}° and sets in the ${compass(p.endAz)}. Look for a bright, steady star.`;
+      toast("🛰 " + esc(msg), null, 15000); chime();
+      if ("Notification" in window && Notification.permission === "granted") { try { new Notification("🛰 ISS overhead soon", { body: msg, tag: "iss-" + key }); } catch (e) {} }
+    }
+  }
+}, 20000);
+const SP_TOGGLES = [["layer", "Space layer", "Show satellites on the globe"], ["stations", "Space stations", "ISS and Tiangong, with the ISS orbit"], ["visual", "Bright satellites", "About 150 satellites you can see by eye"], ["starlink", "Starlink", "Thousands of satellites: heavier on phones"], ["alerts", "ISS alerts", "Heads-up 5 minutes before a visible pass"]];
+function fillSpace() {
+  $("spToggles").innerHTML = SP_TOGGLES.map(([k, l, s]) => `<div class="tog ${SP[k] ? "on" : ""}" data-k="${k}"><div class="l">${l}<small>${s}</small></div><div class="sw"></div></div>`).join("");
+  $("spPlace").textContent = place.name;
+}
+$("spToggles").onclick = e => {
+  const t = e.target.closest("[data-k]"); if (!t) return;
+  const k = t.dataset.k; SP[k] = !SP[k]; save("sky.space", SP); t.classList.toggle("on", SP[k]);
+  if (k === "alerts") { if (SP.alerts && "Notification" in window && Notification.permission === "default") Notification.requestPermission(); return; }
+  if (k === "layer") { SPACE.on = SP.layer; $("bSpace").classList.toggle("on", SPACE.on); }
+  applySpace();
+};
+$("bSpace").onclick = () => {
+  if (openSheet("spaceSheet")) {
+    $("bSpace").classList.add("on"); fillSpace();
+    if (!SPACE.on && SP.layer) { SPACE.on = true; applySpace(); } else computePasses();
+  } else { /* sheet closed: keep the layer on; long-press style toggle below */ }
+};
+$("spView").onclick = () => { stopCine(); unfollow(); closeSheets(); viewer.camera.flyTo({ destination: C.Cartesian3.fromDegrees(place.lon, place.lat - 25, 1.4e7), orientation: { heading: 0, pitch: C.Math.toRadians(-70), roll: 0 }, duration: 3 }); };
+$("spIss").onclick = () => {
+  if (!SPACE.issPos) return toast("ISS orbit not loaded yet");
+  stopCine(); unfollow(); closeSheets();
+  viewer.camera.flyToBoundingSphere(new C.BoundingSphere(C.Cartesian3.clone(SPACE.issPos), 10000), { offset: new C.HeadingPitchRange(0, C.Math.toRadians(-35), 2.5e6), duration: 3 });
+};
+
+// ═════════════════ track my flight ═════════════════
+const IATA2ICAO = { "6E": "IGO", AI: "AIC", IX: "AXB", QP: "AKJ", SG: "SEJ", UK: "VTI", I5: "IAD", "9I": "LLR", S5: "SDG", IC: "FLG", "2T": "TRJ",
+  EK: "UAE", QR: "QTR", EY: "ETD", FZ: "FDB", WY: "OMA", GF: "GFA", SV: "SVA", KU: "KAC", G9: "ABY", J9: "JZR", SQ: "SIA", MH: "MAS", TG: "THA",
+  CX: "CPA", JL: "JAL", NH: "ANA", UL: "ALK", ET: "ETH", TK: "THY", LH: "DLH", BA: "BAW", VS: "VIR", AF: "AFR", KL: "KLM", UA: "UAL", AA: "AAL", DL: "DAL",
+  AK: "AXM", D7: "XAX", FD: "AIQ", TR: "TGW", "3K": "JSA", CZ: "CSN", MU: "CES", CA: "CCA", KE: "KAL", OZ: "AAR", BG: "BBC", PG: "BKP", VN: "HVN", GA: "GIA",
+  QF: "QFA", NZ: "ANZ", AC: "ACA", LX: "SWR", OS: "AUA", AY: "FIN", SK: "SAS", IB: "IBE", AZ: "ITY", MS: "MSR", RJ: "RJA", PK: "PIA", KQ: "KQA", SA: "SAA", WB: "RWD",
+  FX: "FDX", "5X": "UPS", "3S": "BOX", CV: "CLX", "5Y": "GTI" };
+function toCallsign(input) {
+  const s = String(input || "").toUpperCase().replace(/[\s\-]/g, "");
+  const m = s.match(/^([A-Z0-9]{2})(\d{1,4}[A-Z]?)$/);
+  if (m && IATA2ICAO[m[1]] && !/^[A-Z]{3}\d/.test(s)) return IATA2ICAO[m[1]] + m[2].replace(/^0+(?=\d)/, "");
+  if (/^[A-Z]{3}[0-9][0-9A-Z]{0,4}$/.test(s)) return s;
+  if (/^[A-Z0-9]{3,8}$/.test(s)) return s;
+  return null;
+}
+let tracked = load("sky.tracked", []);
+const saveTracked = () => save("sky.tracked", tracked.map(({ input, call, added, landedAt, landedWhere }) => ({ input, call, added, landedAt, landedWhere })));
+function findPlaneByCall(call) { for (const p of planes.values()) if ((p.q.call || "").toUpperCase() === call) return p; return null; }
+async function pollTracked() {
+  for (const t of tracked) {
+    if (t.landedAt && Date.now() - t.landedAt > 6 * 3600 * 1000) continue;
+    let p = findPlaneByCall(t.call);
+    if (!p || Date.now() - (p.seenAt || 0) > 20000) {          // not refreshed by the local feed: look it up worldwide
+      try {
+        const d = await (await fetch(`${RELAY}/callsign?c=${encodeURIComponent(t.call)}`)).json();
+        const q = (d.planes || [])[0];
+        if (q) { const now = Date.now(); p = updatePlane(q, fixFrom(q, Math.min(d.time || now, now)), now); }
+        t.err = d.error || "";
+      } catch (e) { t.err = "lookup failed"; }
+    }
+    t.lastSeen = p ? Date.now() : t.lastSeen;
+    if (p) {
+      p.tracked = true; t.id = p.id;
+      if (!routeCache.has(t.call)) requestRoutes(true);
+      const leg = legOf(p), ft = p.q.altFt || 0, slow = (p.q.kts || 0) < 90;
+      if (!p.q.ground && ft > 3000) t.wasAir = true;
+      const landed = t.wasAir && (p.q.ground || (ft < 1200 && slow) || (leg && leg.dB < 4000 && ft < 2500));
+      if (landed && !t.landedAt) announceLanding(t, p, leg);
+    } else if (t.wasAir && !t.landedAt && t.lastSeen && Date.now() - t.lastSeen > 4 * 60000 && t.lowNear) {
+      announceLanding(t, null, t.lastLeg);              // vanished at low altitude near its destination: it has landed
+    }
+    if (p) { const leg = legOf(p); t.lastLeg = leg || t.lastLeg; t.lowNear = !!(leg && leg.dB < 25000 && (p.q.altFt || 0) < 6000); }
+  }
+  fillFlights();
+}
+function announceLanding(t, p, leg) {
+  t.landedAt = Date.now(); t.landedWhere = leg ? (leg.to.city || leg.to.iata) : "";
+  saveTracked();
+  const msg = `${t.input.toUpperCase()} has landed${t.landedWhere ? " in " + t.landedWhere : ""}.`;
+  toast("🛬 " + esc(msg), p ? () => selectAndShow(p.id) : null, 20000); chime();
+  if ("Notification" in window && Notification.permission === "granted") { try { new Notification("🛬 Landed safely", { body: msg, tag: "landed-" + t.call }); } catch (e) {} }
+}
+function flightStatus(t) {
+  if (t.landedAt) return `🛬 Landed${t.landedWhere ? " in " + esc(t.landedWhere) : ""} at ${new Date(t.landedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const p = t.id && planes.get(t.id);
+  if (!p) return t.err && !/HTTP 404/.test(t.err) ? `Searching… (${esc(t.err)})` : "Not seen in the air right now: not departed yet, or out of coverage.";
+  const leg = legOf(p), spd = (p.q.kts || 0) * 0.5144;
+  const where = leg ? `${leg.from.iata || leg.from.icao} → ${leg.to.iata || leg.to.icao}` : "";
+  if (p.q.ground) return `On the ground${where ? " · " + where : ""}`;
+  return `✈ ${(p.q.altFt || 0).toLocaleString()} ft · ${Math.round((p.q.kts || 0) * 1.852)} km/h${where ? " · " + where : ""}${leg && spd > 30 ? " · lands in ~" + fmtDur(leg.dB / spd) : ""}`;
+}
+function fillFlights() {
+  if (!$("flightsSheet").classList.contains("on")) return;
+  $("flList").innerHTML = tracked.length ? tracked.map((t, i) => `<div class="opt" data-i="${i}"><span class="f">${t.landedAt ? "🛬" : "✈"}</span><div style="flex:1"><div class="n">${esc(t.input.toUpperCase())} <span class="c">${t.call !== t.input.toUpperCase().replace(/\s/g, "") ? "(" + esc(t.call) + ")" : ""}</span></div><div class="c">${flightStatus(t)}</div></div><button class="chip" data-show="${i}">Show</button><button class="chip" data-del="${i}">×</button></div>`).join("")
+    : `<div class="note">No flights tracked yet.</div>`;
+}
+$("flAdd").onclick = () => {
+  const input = $("flIn").value.trim(), call = toCallsign(input);
+  if (!call) return toast("Enter a flight number like 6E 501, or a callsign like IGO501");
+  if (tracked.some(t => t.call === call)) return toast("Already tracking " + esc(input));
+  tracked.push({ input, call, added: Date.now() }); saveTracked(); $("flIn").value = "";
+  if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+  fillFlights(); pollTracked();
+};
+$("flIn").onkeydown = e => { if (e.key === "Enter") $("flAdd").click(); };
+$("flList").onclick = e => {
+  const s = e.target.closest("[data-show]"), d = e.target.closest("[data-del]");
+  if (d) { const t = tracked[+d.dataset.del]; const p = t && t.id && planes.get(t.id); if (p) p.tracked = false; tracked.splice(+d.dataset.del, 1); saveTracked(); fillFlights(); return; }
+  if (s) { const t = tracked[+s.dataset.show]; const p = t && t.id && planes.get(t.id); if (!p) return toast("Not in the air right now"); closeSheets(); selectAndShow(p.id); }
+};
+$("bFlights").onclick = () => { if (openSheet("flightsSheet")) { $("bFlights").classList.add("on"); fillFlights(); pollTracked(); } };
+setInterval(pollTracked, 30000);
+setInterval(fillFlights, 3000);
+
+// ═════════════════ sky stats ═════════════════
+let STATS = load("sky.stats", {});
+const dayKey = d => { const x = d || new Date(); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+let statsDirty = false;
+function recordStats(list) {
+  if (rw.on) return;
+  const k = dayKey(), d = STATS[k] ??= { flights: {}, airlines: {}, types: {}, routes: {}, hours: Array(24).fill(0), rare: {}, maxAlt: null, fastest: null, routed: {} };
+  const hr = new Date().getHours();
+  for (const q of list) {
+    if (!q.id || q.ground) continue;
+    const id = q.id + "|" + (q.call || "");
+    if (!d.flights[id]) {
+      d.flights[id] = 1; d.hours[hr]++;
+      const a = airlineOf(q.call); d.airlines[a ? a.name : "Other"] = (d.airlines[a ? a.name : "Other"] || 0) + 1;
+      if (q.type) d.types[q.type] = (d.types[q.type] || 0) + 1;
+      statsDirty = true;
+    }
+    if ((q.altFt || 0) > ((d.maxAlt && d.maxAlt.v) || 0)) d.maxAlt = { v: q.altFt, call: q.call || q.id };
+    if ((q.kts || 0) > ((d.fastest && d.fastest.v) || 0)) d.fastest = { v: q.kts, call: q.call || q.id };
+    const p = planes.get(q.id);
+    if (p) {
+      if (p.rare && p.rare.tier >= 2) d.rare[q.call || q.id] = p.rare.label;
+      if (!d.routed[id]) { const leg = legOf(p); if (leg) { const r = `${leg.from.iata || leg.from.icao} → ${leg.to.iata || leg.to.icao}`; d.routes[r] = (d.routes[r] || 0) + 1; d.routed[id] = 1; } }
+    }
+  }
+}
+setInterval(() => {
+  if (!statsDirty) return; statsDirty = false;
+  const keep = Object.keys(STATS).sort().slice(-14); STATS = Object.fromEntries(keep.map(k => [k, STATS[k]]));
+  save("sky.stats", STATS);
+}, 30000);
+let statsDays = 1;
+function mergedStats(days) {
+  const out = { flights: 0, airlines: {}, types: {}, routes: {}, hours: Array(24).fill(0), rare: {}, maxAlt: null, fastest: null, days: 0 };
+  for (let i = 0; i < days; i++) {
+    const d = STATS[dayKey(new Date(Date.now() - i * 86400000))]; if (!d) continue; out.days++;
+    out.flights += Object.keys(d.flights).length;
+    for (const f of ["airlines", "types", "routes"]) for (const [k, v] of Object.entries(d[f])) out[f][k] = (out[f][k] || 0) + v;
+    d.hours.forEach((v, h) => out.hours[h] += v);
+    Object.assign(out.rare, d.rare);
+    if (d.maxAlt && (!out.maxAlt || d.maxAlt.v > out.maxAlt.v)) out.maxAlt = d.maxAlt;
+    if (d.fastest && (!out.fastest || d.fastest.v > out.fastest.v)) out.fastest = d.fastest;
+  }
+  return out;
+}
+function bars(obj, n) {
+  const e = Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n); if (!e.length) return `<div class="note">Nothing yet.</div>`;
+  const max = e[0][1];
+  return `<div class="bars">${e.map(([k, v]) => `<div><span>${esc(k)}</span><i style="width:${Math.max(4, v / max * 140)}px"></i><em>${v}</em></div>`).join("")}</div>`;
+}
+function fillStats() {
+  if (!$("statsSheet").classList.contains("on")) return;
+  const s = mergedStats(statsDays), maxH = Math.max(1, ...s.hours), peak = s.hours.indexOf(Math.max(...s.hours));
+  $("stBody").innerHTML = !s.flights ? `<div class="note">No flights counted yet${statsDays === 1 ? " today" : ""}. Keep Sky Live open and they'll add up.</div>` : `
+    <div class="big"><div><b>${s.flights.toLocaleString()}</b><span>flights seen</span></div><div><b>${Object.keys(s.airlines).length}</b><span>airlines</span></div><div><b>${Object.keys(s.rare).length}</b><span>rare planes</span></div></div>
+    <div class="sec">Busiest airlines</div>${bars(s.airlines, 8)}
+    <div class="sec">Aircraft types</div>${bars(s.types, 6)}
+    <div class="sec">Top routes</div>${bars(s.routes, 6)}
+    <div class="sec">By hour${s.hours.some(Boolean) ? ` · busiest ${String(peak).padStart(2, "0")}:00–${String((peak + 1) % 24).padStart(2, "0")}:00` : ""}</div>
+    <div class="hours">${s.hours.map(v => `<i style="height:${Math.round(v / maxH * 100)}%" title="${v}"></i>`).join("")}</div><div class="hlab"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+    <div class="sec">Records</div>
+    <div class="note">${s.maxAlt ? `Highest: <b>${esc(s.maxAlt.call)}</b> at ${s.maxAlt.v.toLocaleString()} ft` : ""}${s.fastest ? `<br>Fastest: <b>${esc(s.fastest.call)}</b> at ${Math.round(s.fastest.v * 1.852)} km/h ground speed` : ""}</div>
+    ${Object.keys(s.rare).length ? `<div class="sec">Rare planes</div><div class="note">${Object.entries(s.rare).slice(0, 12).map(([c, l]) => `⭐ ${esc(c)} · ${esc(l)}`).join("<br>")}</div>` : ""}`;
+}
+$("stTabs").onclick = e => { const b = e.target.closest("[data-v]"); if (!b) return; statsDays = +b.dataset.v; [...$("stTabs").children].forEach(c => c.classList.toggle("on", c === b)); fillStats(); };
+$("bStats").onclick = () => { openSheet("statsSheet"); fillStats(); };
+setInterval(fillStats, 5000);
 
 // ═════════════════ range & place picker ═════════════════
 $("rangeTxt").textContent = RANGES[rangeIdx].km + "km";
