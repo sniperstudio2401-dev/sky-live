@@ -257,7 +257,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const flag = cc => cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "🌍";
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch (e) { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-const fmtDur = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h}h ${m}m` : `${m} min`; };
+const fmtDur = s => { s = Math.max(0, Math.round(s)); if (s < 60) return "under a minute"; const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h}h ${m}m` : `${m} min`; };
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const compass = d => COMPASS[Math.round((d || 0) / 45) % 8];
 
@@ -1134,7 +1134,8 @@ function fillCard() {
     const pct = Math.round(leg.pct * 100);
     $("cBar").style.width = pct + "%"; $("cPlane").style.left = pct + "%";
     const spd = (q.kts || 0) * 0.5144;
-    $("cEta").textContent = `${Math.round(leg.dB / 1000).toLocaleString()} km to go${spd > 30 ? " · lands in ~" + fmtDur(leg.dB / spd) : ""}`;
+    const secs = spd > 30 ? leg.dB / spd : null;
+    $("cEta").textContent = `${Math.round(leg.dB / 1000).toLocaleString()} km to go${secs == null ? "" : secs < 60 ? " · landing now" : " · lands in ~" + fmtDur(secs)}`;
   }
 }
 setInterval(() => { if (selected) fillCard(); }, 1000);
